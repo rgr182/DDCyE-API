@@ -15,26 +15,38 @@ namespace DDEyC_API.DataAccess.Services
 
     public class UserService : IUserService
     {
-        private readonly IUserRepository _repository;
+        #region Private Fields
+
+        private readonly IUserRepository _userRepository;
+        private readonly ISessionRepository _sessionRepository;
         private readonly IConfiguration _configuration;
         private readonly ILogger<UserService> _logger;
 
-        public UserService(IUserRepository repository, IConfiguration configuration, ILogger<UserService> logger)
+        #endregion
+
+        #region Constructor
+
+        public UserService(IUserRepository userRepository, ISessionRepository sessionRepository, IConfiguration configuration, ILogger<UserService> logger)
         {
-            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+            _sessionRepository = sessionRepository ?? throw new ArgumentNullException(nameof(sessionRepository));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
+
+        #endregion
+
+        #region Public Methods
 
         public async Task<List<User>> GetAllUsers()
         {
             try
             {
-                return await _repository.GetAllUsers();
+                return await _userRepository.GetAllUsers();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener todos los usuarios");
+                _logger.LogError(ex, "Error while retrieving all users");
                 throw;
             }
         }
@@ -43,11 +55,11 @@ namespace DDEyC_API.DataAccess.Services
         {
             try
             {
-                return await _repository.GetUser(id);
+                return await _userRepository.GetUser(id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener el usuario con ID {UserId}", id);
+                _logger.LogError(ex, "Error while retrieving user with ID {UserId}", id);
                 throw;
             }
         }
@@ -56,10 +68,10 @@ namespace DDEyC_API.DataAccess.Services
         {
             try
             {
-                var existingUser = await _repository.GetUserByEmail(registrationDTO.Email);
+                var existingUser = await _userRepository.GetUserByEmail(registrationDTO.Email);
                 if (existingUser != null)
                 {
-                    throw new Exception("Ya existe una cuenta con este correo electrónico.");
+                    throw new Exception("An account with this email already exists.");
                 }
 
                 string passwordHash = GeneratePasswordHash(registrationDTO.Password);
@@ -70,11 +82,11 @@ namespace DDEyC_API.DataAccess.Services
                     Password = passwordHash,
                 };
 
-                return await _repository.AddUser(user);
+                return await _userRepository.AddUser(user);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al registrar un usuario");
+                _logger.LogError(ex, "Error while registering a user");
                 throw;
             }
         }
@@ -83,22 +95,31 @@ namespace DDEyC_API.DataAccess.Services
         {
             try
             {
-                var user = await _repository.GetUserByEmail(email);
+                var user = await _userRepository.GetUserByEmail(email);
                 if (user == null)
                 {
                     return null;
                 }
                 if (!CheckHash(user, password))
                 {
-                    throw new Exception("Credenciales inválidas");
+                    throw new Exception("Invalid credentials");
                 }
-                
-                string token = GenerateAuthToken(user);
-                return token;
+
+                // Crear una nueva sesión
+                var session = new Sessions
+                {
+                    UserId = user.Id,
+                    UserToken = Guid.NewGuid().ToString(), // Usar un token único para la sesión
+                    ExpirationDate = DateTime.UtcNow.AddHours(1) // Ejemplo: expira en una hora
+                };
+
+                await _sessionRepository.AddSession(session);
+
+                return session.UserToken;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al iniciar sesión");
+                _logger.LogError(ex, "Error while logging in");
                 throw;
             }
         }
@@ -107,31 +128,29 @@ namespace DDEyC_API.DataAccess.Services
         {
             try
             {
-                return await _repository.GetUserByEmail(email);
+                return await _userRepository.GetUserByEmail(email);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener el usuario con correo electrónico {UserEmail}", email);
+                _logger.LogError(ex, "Error while retrieving user with email {UserEmail}", email);
                 throw;
             }
         }
+
+        #endregion
+
+        #region Private Methods
 
         private string GeneratePasswordHash(string password)
         {
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
-        private string GenerateAuthToken(User user)
-        {
-            string token = Guid.NewGuid().ToString();
-            string tokenHash = BCrypt.Net.BCrypt.HashPassword(token);
-            // Aquí podrías almacenar el token en la base de datos o en una caché para su posterior verificación.
-            return token;
-        }
-
         private bool CheckHash(User user, string password)
         {
             return BCrypt.Net.BCrypt.Verify(password, user.Password);
         }
+
+        #endregion
     }
 }

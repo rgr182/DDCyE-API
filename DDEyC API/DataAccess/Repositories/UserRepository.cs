@@ -33,7 +33,7 @@ namespace DDEyC_API.DataAccess.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al agregar usuario");
+                _logger.LogError(ex, "Error while adding user");
                 throw;
             }
         }
@@ -46,7 +46,7 @@ namespace DDEyC_API.DataAccess.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener todos los usuarios");
+                _logger.LogError(ex, "Error while retrieving all users");
                 throw;
             }
         }
@@ -59,7 +59,7 @@ namespace DDEyC_API.DataAccess.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener el usuario con ID {UserId}", id);
+                _logger.LogError(ex, "Error while retrieving user with ID {UserId}", id);
                 throw;
             }
         }
@@ -72,7 +72,7 @@ namespace DDEyC_API.DataAccess.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener el usuario con correo electrónico {UserEmail}", email);
+                _logger.LogError(ex, "Error while retrieving user with email {UserEmail}", email);
                 throw;
             }
         }

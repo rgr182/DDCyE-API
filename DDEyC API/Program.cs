@@ -1,11 +1,8 @@
 using DDEyC_API.DataAccess.Context;
 using DDEyC_API.DataAccess.Repositories;
 using DDEyC_API.DataAccess.Services;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
-using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -20,9 +17,11 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Volviendo A Casa Auth", Version = "v1" });
 });
 
-// Register your service
+// Register your services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>

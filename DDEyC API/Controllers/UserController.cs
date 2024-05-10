@@ -29,8 +29,8 @@ namespace DDEyC.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener todos los usuarios");
-                return StatusCode(500, "Error interno del servidor");
+                _logger.LogError(ex, "Error while retrieving all users");
+                return StatusCode(500, "Internal server error");
             }
         }
 
@@ -49,8 +49,8 @@ namespace DDEyC.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener el usuario con ID {UserId}", id);
-                return StatusCode(500, "Error interno del servidor");
+                _logger.LogError(ex, "Error while retrieving user with ID {UserId}", id);
+                return StatusCode(500, "Internal server error");
             }
         }
 
@@ -69,8 +69,8 @@ namespace DDEyC.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener el usuario con email {UserEmail}", email);
-                return StatusCode(500, "Error interno del servidor");
+                _logger.LogError(ex, "Error while retrieving user with email {UserEmail}", email);
+                return StatusCode(500, "Internal server error");
             }
         }
 
@@ -80,12 +80,12 @@ namespace DDEyC.Controllers
             try
             {
                 var user = await _service.Register(request);
-                return Ok(new { message = "Registro exitoso", user.Email });
+                return Ok(new { message = "Registration successful", user.Email });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al registrar un usuario");
-                return BadRequest(new { message = "Registro fallido", error = ex.Message });
+                _logger.LogError(ex, "Error while registering a user");
+                return BadRequest(new { message = "Registration failed", error = ex.Message });
             }
         }
 
@@ -97,14 +97,14 @@ namespace DDEyC.Controllers
                 var token = await _service.Login(request.Email, request.Password);
                 if (token == null)
                 {
-                    return BadRequest(new { message = "Credenciales inválidas" });
+                    return BadRequest(new { message = "Invalid credentials" });
                 }
                 return Ok(new { token });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al iniciar sesión");
-                return BadRequest(new { message = "Inicio de sesión fallido", error = ex.Message });
+                _logger.LogError(ex, "Error while logging in");
+                return BadRequest(new { message = "Login failed", error = ex.Message });
             }
         }
     }
