@@ -19,8 +19,7 @@ namespace DDEyC.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        [HttpGet(Name = "All")]
-        [Authorize(Roles = "Admin")]
+        [HttpGet(Name = "GetAllUsers")]        
         public async Task<IActionResult> GetAllUsers()
         {
             try

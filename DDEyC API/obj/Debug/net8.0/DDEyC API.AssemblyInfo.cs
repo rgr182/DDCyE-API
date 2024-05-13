@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DDEyC API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+09b97111432b8ecc06635a0a883b44b4d03381f9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4a89ccdd0769a91ec34158f50b3ea7137316c7e8")]
 [assembly: System.Reflection.AssemblyProductAttribute("DDEyC API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DDEyC API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
