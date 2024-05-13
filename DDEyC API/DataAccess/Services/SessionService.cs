@@ -1,6 +1,7 @@
 ﻿using DDEyC_Auth.DataAccess.Models.Entities;
 using DDEyC_API.DataAccess.Repositories;
 using DDEyC_Auth.Utils;
+using Microsoft.AspNetCore.Http;
 
 namespace DDEyC_API.DataAccess.Services
 {
@@ -8,7 +9,8 @@ namespace DDEyC_API.DataAccess.Services
     {
         Task<Sessions> SaveSession(Users user);
         Task<bool> EndSession(int sessionId);
-        Task<Sessions> GetSession(int sessionId);        
+        Task<Sessions> GetSession(int sessionId);
+        Task<Sessions> ValidateSession();
     }
 
     public class SessionService : ISessionService
@@ -16,9 +18,11 @@ namespace DDEyC_API.DataAccess.Services
         private readonly ISessionRepository _sessionRepository;
         private readonly IAuthUtils _authUtils;
         private readonly ILogger<SessionService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public SessionService(ISessionRepository sessionRepository, IAuthUtils authUtils, ILogger<SessionService> logger)
+        public SessionService(ISessionRepository sessionRepository, IAuthUtils authUtils, IHttpContextAccessor httpContextAccessor, ILogger<SessionService> logger)
         {
+            _httpContextAccessor = httpContextAccessor;
             _sessionRepository = sessionRepository ?? throw new ArgumentNullException(nameof(sessionRepository));
             _authUtils = authUtils ?? throw new ArgumentNullException(nameof(authUtils));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -70,6 +74,36 @@ namespace DDEyC_API.DataAccess.Services
                 _logger.LogError(ex, "Error while retrieving session with ID {SessionId}", sessionId);
                 throw;
             }
-        }       
+        }
+        public async Task<Sessions> ValidateSession()
+        {
+            try
+            {
+                var token = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+
+                // Validate the JWT token using the ValidateJWT method of AuthUtils
+                if (_authUtils.ValidateJWT(token))
+                {
+                    // If the token is valid, extract the user ID from the token
+                    var userId = _authUtils.GetUserIdFromToken(token);
+
+                    // Return an instance of Sessions with the user ID and the JWT token
+                    return new Sessions
+                    {
+                        UserId = userId,
+                        UserToken = token
+                    };
+                }
+                else
+                {
+                    throw new UnauthorizedAccessException("Invalid JWT token.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while validating session");
+                throw;
+            }
+        }
     }
 }

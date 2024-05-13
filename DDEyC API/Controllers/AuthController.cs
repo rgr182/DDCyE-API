@@ -89,5 +89,25 @@ namespace DDEyC.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
+        [HttpGet("validateSession")]
+        public async Task<IActionResult> ValidateSession()
+        {
+            try
+            {
+                var session = await _sessionService.ValidateSession();
+                return Ok(session);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Invalid session");
+                return Unauthorized("Invalid session");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while validating session");
+                return StatusCode(500, "Internal server error");
+            }
+        }
     }
 }
