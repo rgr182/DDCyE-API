@@ -1,15 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using DDEyC_API.DataAccess.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DDEyC.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class AuthController : ControllerBase
     {
         private readonly ISessionService _sessionService;
         private readonly ILogger<AuthController> _logger;
-        public readonly  IUserService _usersService;
+        public readonly IUserService _usersService;
 
         public AuthController(ISessionService sessionService, IUserService usersService, ILogger<AuthController> logger)
         {
@@ -18,6 +20,7 @@ namespace DDEyC.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login(string email, string password)
         {
@@ -26,7 +29,7 @@ namespace DDEyC.Controllers
                 var userD = await _usersService.GetUserByEmail(email);
                 if (userD == null)
                 {
-                    return Unauthorized("El email no existe");
+                    return Unauthorized("Email does not exist");
                 }
 
                 var session = await _sessionService.SaveSession(userD);
@@ -34,11 +37,11 @@ namespace DDEyC.Controllers
             }
             catch (UnauthorizedAccessException)
             {
-                return Unauthorized("El email/contraseña no coinciden");
+                return Unauthorized("Email/password do not match");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ocurrió un problema durante el inicio de sesión");
+                _logger.LogError(ex, "An error occurred during login");
                 return Problem("An error occurred during login. Please contact the System Administrator");
             }
         }
@@ -85,6 +88,6 @@ namespace DDEyC.Controllers
                 _logger.LogError(ex, "Error while retrieving session with ID {SessionId}", sessionId);
                 return StatusCode(500, "Internal server error");
             }
-        }      
+        }
     }
 }

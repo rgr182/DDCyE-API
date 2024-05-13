@@ -7,6 +7,7 @@ namespace DDEyC.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly IUserService _usersService;
@@ -74,6 +75,7 @@ namespace DDEyC.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register(UserRegistrationDTO request)
         {
@@ -95,25 +97,6 @@ namespace DDEyC.Controllers
                 _logger.LogError(ex, "Error while registering a user");
                 return BadRequest(new { message = "Registration failed", error = ex.Message });
             }
-        }
-
-        [HttpPost("login")]
-        public async Task<IActionResult> Login(EmailLoginDTO request)
-        {
-            try
-            {
-                var token = await _usersService.Login(request.Email, request.Password);
-                if (token == null)
-                {
-                    return BadRequest(new { message = "Invalid credentials" });
-                }
-                return Ok(new { token });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while logging in");
-                return BadRequest(new { message = "Login failed", error = ex.Message });
-            }
-        }
+        }        
     }
 }

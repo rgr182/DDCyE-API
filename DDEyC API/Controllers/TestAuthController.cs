@@ -5,9 +5,9 @@ namespace DDEyC.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TestAuthController : ControllerBase
-    {
-        [Authorize]
+    {        
         [HttpGet("test")]
         public IActionResult Test()
         {
