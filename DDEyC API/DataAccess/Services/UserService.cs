@@ -6,11 +6,12 @@ namespace DDEyC_API.DataAccess.Services
 {
     public interface IUserService
     {
-        Task<List<User>> GetAllUsers();
-        Task<User> GetUser(int id);
-        Task<User> GetUserByEmail(string email);
-        Task<User> Register(UserRegistrationDTO request);
+        Task<List<Users>> GetAllUsers();
+        Task<Users> GetUser(int id);
+        Task<Users> GetUserByEmail(string email);
+        Task<Users> Register(UserRegistrationDTO request);
         Task<string> Login(string email, string password);
+        Task<string> VerifyExistingEmail(string email);
     }
 
     public class UserService : IUserService
@@ -38,7 +39,7 @@ namespace DDEyC_API.DataAccess.Services
 
         #region Public Methods
 
-        public async Task<List<User>> GetAllUsers()
+        public async Task<List<Users>> GetAllUsers()
         {
             try
             {
@@ -51,7 +52,7 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
-        public async Task<User> GetUser(int id)
+        public async Task<Users> GetUser(int id)
         {
             try
             {
@@ -64,7 +65,7 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
-        public async Task<User> Register(UserRegistrationDTO registrationDTO)
+        public async Task<Users> Register(UserRegistrationDTO registrationDTO)
         {
             try
             {
@@ -75,7 +76,7 @@ namespace DDEyC_API.DataAccess.Services
                 }
 
                 string passwordHash = GeneratePasswordHash(registrationDTO.Password);
-                User user = new User
+                Users user = new Users
                 {
                     Name = registrationDTO.Name,
                     Email = registrationDTO.Email,
@@ -108,7 +109,7 @@ namespace DDEyC_API.DataAccess.Services
                 // Crear una nueva sesión
                 var session = new Sessions
                 {
-                    UserId = user.Id,
+                    UserId = user.UserId,
                     UserToken = Guid.NewGuid().ToString(), // Usar un token único para la sesión
                     ExpirationDate = DateTime.UtcNow.AddHours(1) // Ejemplo: expira en una hora
                 };
@@ -124,7 +125,7 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
-        public async Task<User> GetUserByEmail(string email)
+        public async Task<Users> GetUserByEmail(string email)
         {
             try
             {
@@ -137,6 +138,21 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
+        public async Task<string> VerifyExistingEmail(string email)
+        {
+            try
+            {
+                var existingUser = await _userRepository.GetUserByEmail(email);
+                return existingUser != null ? "Email already exists" : "Email available";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while verifying existing email");
+                throw;
+            }
+        }
+
+
         #endregion
 
         #region Private Methods
@@ -146,7 +162,7 @@ namespace DDEyC_API.DataAccess.Services
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
-        private bool CheckHash(User user, string password)
+        private bool CheckHash(Users user, string password)
         {
             return BCrypt.Net.BCrypt.Verify(password, user.Password);
         }

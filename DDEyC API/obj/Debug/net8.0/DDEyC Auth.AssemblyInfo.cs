@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DDEyC Auth")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ac1f594d02b8a65e2144830ddbdbf20c8f8863a5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+09b97111432b8ecc06635a0a883b44b4d03381f9")]
 [assembly: System.Reflection.AssemblyProductAttribute("DDEyC Auth")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DDEyC Auth")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

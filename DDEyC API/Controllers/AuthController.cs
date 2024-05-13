@@ -5,34 +5,46 @@ namespace DDEyC.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class SessionController : ControllerBase
+    public class AuthController : ControllerBase
     {
         private readonly ISessionService _sessionService;
-        private readonly ILogger<SessionController> _logger;
+        private readonly ILogger<AuthController> _logger;
+        public readonly  IUserService _usersService;
 
-        public SessionController(ISessionService sessionService, ILogger<SessionController> logger)
+        public AuthController(ISessionService sessionService, IUserService usersService, ILogger<AuthController> logger)
         {
+            _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
             _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        [HttpPost("start")]
-        public async Task<IActionResult> StartSession(int userId)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(string email, string password)
         {
             try
             {
-                var token = await _sessionService.StartSession(userId);
-                return Ok(new { token });
+                var userD = await _usersService.GetUserByEmail(email);
+                if (userD == null)
+                {
+                    return Unauthorized("El email no existe");
+                }
+
+                var session = await _sessionService.SaveSession(userD);
+                return Ok(session);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("El email/contraseña no coinciden");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while starting session for user with ID {UserId}", userId);
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Ocurrió un problema durante el inicio de sesión");
+                return Problem("An error occurred during login. Please contact the System Administrator");
             }
         }
 
-        [HttpPost("end")]
-        public async Task<IActionResult> EndSession(int sessionId)
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(int sessionId)
         {
             try
             {
@@ -73,21 +85,6 @@ namespace DDEyC.Controllers
                 _logger.LogError(ex, "Error while retrieving session with ID {SessionId}", sessionId);
                 return StatusCode(500, "Internal server error");
             }
-        }
-
-        [HttpGet("validate")]
-        public async Task<IActionResult> ValidateSession(int sessionId, string token)
-        {
-            try
-            {
-                var isValid = await _sessionService.ValidateSession(sessionId, token);
-                return Ok(new { isValid });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while validating session with ID {SessionId}", sessionId);
-                return StatusCode(500, "Internal server error");
-            }
-        }
+        }      
     }
 }

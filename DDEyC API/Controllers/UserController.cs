@@ -9,12 +9,12 @@ namespace DDEyC.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly IUserService _service;
+        private readonly IUserService _usersService;
         private readonly ILogger<UserController> _logger;
 
-        public UserController(IUserService service, ILogger<UserController> logger)
+        public UserController(IUserService usersService, ILogger<UserController> logger)
         {
-            _service = service ?? throw new ArgumentNullException(nameof(service));
+            _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -24,7 +24,7 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var users = await _service.GetAllUsers();
+                var users = await _usersService.GetAllUsers();
                 return Ok(users);
             }
             catch (Exception ex)
@@ -40,7 +40,7 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var user = await _service.GetUser(id);
+                var user = await _usersService.GetUser(id);
                 if (user == null)
                 {
                     return NotFound("User not found");
@@ -60,7 +60,7 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var user = await _service.GetUserByEmail(email);
+                var user = await _usersService.GetUserByEmail(email);
                 if (user == null)
                 {
                     return NotFound();
@@ -79,7 +79,15 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var user = await _service.Register(request);
+                // Verify if the email is already registered
+                var emailVerificationResult = await _usersService.VerifyExistingEmail(request.Email);
+                if (emailVerificationResult == "Email already exists")
+                {
+                    return BadRequest(new { message = "Registration failed", error = "Email already exists" });
+                }
+
+                // If the email is not registered, proceed with the registration
+                var user = await _usersService.Register(request);
                 return Ok(new { message = "Registration successful", user.Email });
             }
             catch (Exception ex)
@@ -94,7 +102,7 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var token = await _service.Login(request.Email, request.Password);
+                var token = await _usersService.Login(request.Email, request.Password);
                 if (token == null)
                 {
                     return BadRequest(new { message = "Invalid credentials" });

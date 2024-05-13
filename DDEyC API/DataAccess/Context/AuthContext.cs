@@ -15,7 +15,7 @@ namespace DDEyC_API.DataAccess.Context
         {
         }
 
-        public DbSet<User> Users { get; set; }
+        public DbSet<Users> Users { get; set; }
         public DbSet<Sessions> Sessions { get; set; }
 
         public static AuthContext GetInstance()

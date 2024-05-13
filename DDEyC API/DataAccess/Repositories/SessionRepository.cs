@@ -8,8 +8,7 @@ namespace DDEyC_API.DataAccess.Repositories
     {
         Task<Sessions> GetSession(int sessionId);
         Task<Sessions> AddSession(Sessions session);
-        Task UpdateSession(Sessions session);
-        Task DeleteSession(int sessionId);
+        Task DeleteSession(int sessionId);        
     }
 
     public class SessionRepository : ISessionRepository
@@ -67,20 +66,6 @@ namespace DDEyC_API.DataAccess.Repositories
                 _logger.LogError(ex, "Error while retrieving session with ID {SessionId}", sessionId);
                 throw;
             }
-        }
-
-        public async Task UpdateSession(Sessions session)
-        {
-            try
-            {
-                _authContext.Entry(session).State = EntityState.Modified;
-                await _authContext.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while updating session with ID {SessionId}", session.SessionId);
-                throw;
-            }
-        }
+        }       
     }
 }

@@ -6,10 +6,11 @@ namespace DDEyC_API.DataAccess.Repositories
 {
     public interface IUserRepository
     {
-        Task<List<User>> GetAllUsers();
-        Task<User> GetUser(int id);
-        Task<User> GetUserByEmail(string email);
-        Task<User> AddUser(User user);
+        Task<List<Users>> GetAllUsers();
+        Task<Users> GetUser(int id);
+        Task<Users> GetUserByEmail(string email);
+        Task<Users> AddUser(Users user);
+        Task<string> VerifyExistingEmail(string email);
     }
 
     public class UserRepository : IUserRepository
@@ -23,7 +24,7 @@ namespace DDEyC_API.DataAccess.Repositories
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<User> AddUser(User user)
+        public async Task<Users> AddUser(Users user)
         {
             try
             {
@@ -38,7 +39,7 @@ namespace DDEyC_API.DataAccess.Repositories
             }
         }
 
-        public async Task<List<User>> GetAllUsers()
+        public async Task<List<Users>> GetAllUsers()
         {
             try
             {
@@ -51,7 +52,7 @@ namespace DDEyC_API.DataAccess.Repositories
             }
         }
 
-        public async Task<User> GetUser(int id)
+        public async Task<Users> GetUser(int id)
         {
             try
             {
@@ -64,7 +65,7 @@ namespace DDEyC_API.DataAccess.Repositories
             }
         }
 
-        public async Task<User> GetUserByEmail(string email)
+        public async Task<Users> GetUserByEmail(string email)
         {
             try
             {
@@ -73,6 +74,20 @@ namespace DDEyC_API.DataAccess.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while retrieving user with email {UserEmail}", email);
+                throw;
+            }
+        }
+
+        public async Task<string> VerifyExistingEmail(string email)
+        {
+            try
+            {
+                var existingUser = await _authContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+                return existingUser != null ? "Email already exists" : "Email available";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while verifying existing email");
                 throw;
             }
         }

@@ -1,6 +1,8 @@
 using DDEyC_API.DataAccess.Context;
 using DDEyC_API.DataAccess.Repositories;
 using DDEyC_API.DataAccess.Services;
+using DDEyC_Auth.Infraestructure;
+using DDEyC_Auth.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -17,11 +19,14 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth", Version = "v1" });
 });
 
+AuthenticationConfig authenticationConfig = new AuthenticationConfig(builder);
+
 // Register your services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
+builder.Services.AddScoped<IAuthUtils, AuthUtils>();
 
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>
@@ -37,6 +42,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
