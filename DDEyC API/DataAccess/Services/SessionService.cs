@@ -70,7 +70,6 @@ namespace DDEyC_API.DataAccess.Services
                 _logger.LogError(ex, "Error while retrieving session with ID {SessionId}", sessionId);
                 throw;
             }
-        }
-       
+        }       
     }
 }
