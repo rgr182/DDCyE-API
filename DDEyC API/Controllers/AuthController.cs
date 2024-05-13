@@ -91,12 +91,21 @@ namespace DDEyC.Controllers
         }
 
         [HttpGet("validateSession")]
+        [AllowAnonymous]
         public async Task<IActionResult> ValidateSession()
         {
             try
             {
                 var session = await _sessionService.ValidateSession();
-                return Ok(session);
+
+                // Calculate remaining minutes of the token
+                var remainingMinutes = (int)(session.ExpirationDate - DateTime.UtcNow).TotalMinutes;
+
+                // Construct the message
+                var message = $"Token expires in {remainingMinutes} minute(s).";
+
+                // Return Ok response with the session and message
+                return Ok(new { Session = session, Message = message });
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -109,5 +118,6 @@ namespace DDEyC.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
     }
 }

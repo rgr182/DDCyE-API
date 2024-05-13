@@ -75,29 +75,28 @@ namespace DDEyC_API.DataAccess.Services
                 throw;
             }
         }
+
+        /// <summary>
+        /// Validates the session by checking the JWT token.
+        /// </summary>
+        /// <returns>An instance of Sessions with the user ID, token, expiration date, and creation date if the session is valid.</returns>
         public async Task<Sessions> ValidateSession()
         {
             try
             {
                 var token = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
-                // Validate the JWT token using the ValidateJWT method of AuthUtils
-                if (_authUtils.ValidateJWT(token))
-                {
-                    // If the token is valid, extract the user ID from the token
-                    var userId = _authUtils.GetUserIdFromToken(token);
+                // Retrieve user ID, token, expiration date, and creation date from the JWT token
+                var (userId, _, expirationDate, creationDate) = _authUtils.GetUserFromToken(token);
 
-                    // Return an instance of Sessions with the user ID and the JWT token
-                    return new Sessions
-                    {
-                        UserId = userId,
-                        UserToken = token
-                    };
-                }
-                else
+                // Return an instance of Sessions with the user ID, token, expiration date, and creation date
+                return new Sessions
                 {
-                    throw new UnauthorizedAccessException("Invalid JWT token.");
-                }
+                    UserId = userId,
+                    UserToken = token,
+                    ExpirationDate = expirationDate,
+                    CreationDate = creationDate
+                };
             }
             catch (Exception ex)
             {
