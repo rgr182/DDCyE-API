@@ -10,7 +10,7 @@ namespace DDEyC_API.DataAccess.Services
         Task<Users> GetUser(int id);
         Task<Users> GetUserByEmail(string email);
         Task<Users> Register(UserRegistrationDTO request);
-        Task<string> Login(string email, string password);
+        Task<Users> Login(string email, string password);
         Task<string> VerifyExistingEmail(string email);
     }
 
@@ -92,7 +92,7 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
-        public async Task<string> Login(string email, string password)
+        public async Task<Users> Login(string email, string password)
         {
             try
             {
@@ -106,17 +106,8 @@ namespace DDEyC_API.DataAccess.Services
                     throw new Exception("Invalid credentials");
                 }
 
-                // Create a new session
-                var session = new Sessions
-                {
-                    UserId = user.UserId,
-                    UserToken = Guid.NewGuid().ToString(), // Use a unique token for the session
-                    ExpirationDate = DateTime.UtcNow.AddHours(1) // Example: expires in one hour
-                };
-
-                await _sessionRepository.AddSession(session);
-
-                return session.UserToken;
+                // Return the user object after successful login
+                return user;
             }
             catch (Exception ex)
             {

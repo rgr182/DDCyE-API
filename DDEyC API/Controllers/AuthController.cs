@@ -26,10 +26,10 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var userD = await _usersService.GetUserByEmail(email);
+                var userD = await _usersService.Login(email, password);
                 if (userD == null)
                 {
-                    return Unauthorized("Email does not exist");
+                    return Unauthorized("Email/password do not match");
                 }
 
                 var session = await _sessionService.SaveSession(userD);
