@@ -106,12 +106,12 @@ namespace DDEyC_API.DataAccess.Services
                     throw new Exception("Invalid credentials");
                 }
 
-                // Crear una nueva sesión
+                // Create a new session
                 var session = new Sessions
                 {
                     UserId = user.UserId,
-                    UserToken = Guid.NewGuid().ToString(), // Usar un token único para la sesión
-                    ExpirationDate = DateTime.UtcNow.AddHours(1) // Ejemplo: expira en una hora
+                    UserToken = Guid.NewGuid().ToString(), // Use a unique token for the session
+                    ExpirationDate = DateTime.UtcNow.AddHours(1) // Example: expires in one hour
                 };
 
                 await _sessionRepository.AddSession(session);
@@ -151,7 +151,6 @@ namespace DDEyC_API.DataAccess.Services
                 throw;
             }
         }
-
 
         #endregion
 

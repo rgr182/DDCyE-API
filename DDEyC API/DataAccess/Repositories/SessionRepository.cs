@@ -1,6 +1,5 @@
 ﻿using DDEyC_API.DataAccess.Context;
 using DDEyC_Auth.DataAccess.Models.Entities;
-using Microsoft.EntityFrameworkCore;
 
 namespace DDEyC_API.DataAccess.Repositories
 {
