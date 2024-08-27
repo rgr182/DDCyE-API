@@ -2,7 +2,6 @@
 using DDEyC_API.DataAccess.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Reflection.Metadata;
 
 namespace DDEyC_API.Controllers
 {

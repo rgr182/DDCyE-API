@@ -2331,9 +2331,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Programas\\Auth-API\\DDEyC-API\\DDEyC API\\DDEyC Auth.csproj",
-      "projectName": "DDEyC Auth",
-      "projectPath": "C:\\Programas\\Auth-API\\DDEyC-API\\DDEyC API\\DDEyC Auth.csproj",
+      "projectUniqueName": "C:\\Programas\\Auth-API\\DDEyC-API\\DDEyC API\\DDEyC API.csproj",
+      "projectName": "DDEyC API",
+      "projectPath": "C:\\Programas\\Auth-API\\DDEyC-API\\DDEyC API\\DDEyC API.csproj",
       "packagesPath": "C:\\Users\\rgr_1\\.nuget\\packages\\",
       "outputPath": "C:\\Programas\\Auth-API\\DDEyC-API\\DDEyC API\\obj\\",
       "projectStyle": "PackageReference",

@@ -1,7 +1,6 @@
 ﻿using DDEyC_Auth.DataAccess.Models.Entities;
 using DDEyC_API.DataAccess.Repositories;
 using DDEyC_Auth.Utils;
-using Microsoft.AspNetCore.Http;
 
 namespace DDEyC_API.DataAccess.Services
 {
