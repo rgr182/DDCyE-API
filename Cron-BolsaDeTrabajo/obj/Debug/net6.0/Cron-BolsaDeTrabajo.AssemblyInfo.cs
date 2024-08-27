@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Cron-BolsaDeTrabajo")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+639e839fc112b3a3f8bea0b4afd4d2d62b3f9c36")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
 [assembly: System.Reflection.AssemblyProductAttribute("Cron-BolsaDeTrabajo")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Cron-BolsaDeTrabajo")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

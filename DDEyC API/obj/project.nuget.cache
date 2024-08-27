@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "71zhcJnOU3dlvmOnyKYKQYO6ZkY2Z1U0tTJ6gpf0Tc/xwTvPxPqcwgZxz+gW6j/OH/dTNUlPLrDdqrY8TTbSxw==",
+  "dgSpecHash": "xBLcdD9Ph4l/XiYFOqhkUNrPJayQXxyZC2n+4HpLI62PNRiLGx4ChwiFTq56IEa1Ytoi8iRuk86LpXCXWysH5Q==",
   "success": true,
-  "projectFilePath": "C:\\Programas\\Auth-API\\DDEyC-API\\DDEyC API\\DDEyC Auth.csproj",
+  "projectFilePath": "C:\\Programas\\Auth-API\\DDEyC-API\\DDEyC API\\DDEyC API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\rgr_1\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\rgr_1\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.1\\microsoft.aspnetcore.authentication.jwtbearer.8.0.1.nupkg.sha512",
