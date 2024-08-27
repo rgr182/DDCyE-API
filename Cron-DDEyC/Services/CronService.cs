@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Cron_DDEyC.Infrastructure;
+using Cron_DDEyC.Infraestructure;
 
 namespace Cron_DDEyC.Services
 {

@@ -1,6 +1,6 @@
 ﻿using NCrontab;
 using Cron_DDEyC.Services;
-using Cron_DDEyC.Infrastructure;
+using Cron_DDEyC.Infraestructure;
 namespace Cron_DDEyC
 {
     class Program
