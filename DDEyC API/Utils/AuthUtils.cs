@@ -98,7 +98,7 @@ namespace DDEyC_Auth.Utils
         /// <param name="token">The JWT token.</param>
         /// <returns>A tuple containing the user ID, token, expiration date, and creation date.</returns>
         public (int userId, string token, DateTime expirationDate, DateTime creationDate) GetUserFromToken(string token)
-        {
+        {   
             // Initialize a JwtSecurityTokenHandler to read the token
             var tokenHandler = new JwtSecurityTokenHandler();
             var jwtToken = tokenHandler.ReadToken(token) as JwtSecurityToken;
@@ -120,6 +120,12 @@ namespace DDEyC_Auth.Utils
                 if (creationDateClaim != null && long.TryParse(creationDateClaim.Value, out long unixTime))
                 {
                     creationDate = DateTimeOffset.FromUnixTimeSeconds(unixTime).UtcDateTime;
+                }
+
+                // Check if the token has expired
+                if (expirationDate < DateTime.UtcNow)
+                {
+                    throw new SecurityTokenExpiredException("The token has expired.");
                 }
 
                 // Return a tuple containing the user ID, token, expiration date, and creation date

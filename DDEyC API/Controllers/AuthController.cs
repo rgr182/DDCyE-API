@@ -44,29 +44,7 @@ namespace DDEyC.Controllers
                 _logger.LogError(ex, "An error occurred during login");
                 return Problem("An error occurred during login. Please contact the System Administrator");
             }
-        }
-
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout(int sessionId)
-        {
-            try
-            {
-                var success = await _sessionService.EndSession(sessionId);
-                if (success)
-                {
-                    return Ok("Session ended successfully");
-                }
-                else
-                {
-                    return BadRequest("Failed to end session");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while ending session with ID {SessionId}", sessionId);
-                return StatusCode(500, "Internal server error");
-            }
-        }
+        }       
 
         [HttpGet("{sessionId}")]
         public async Task<IActionResult> GetSession(int sessionId)
