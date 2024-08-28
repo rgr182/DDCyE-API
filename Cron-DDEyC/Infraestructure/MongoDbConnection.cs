@@ -1,8 +1,15 @@
 ﻿using MongoDB.Driver;
 
-namespace Cron_DDEyC.Infraestructure
+namespace Cron_BolsaDeTrabajo.Infrastructure
 {
-    public class MongoDbConnection
+    // Interface for MongoDB Connection
+    public interface IMongoDbConnection
+    {
+        IMongoCollection<T> GetCollection<T>(string collectionName);
+    }
+
+    // Implementation of MongoDB Connection
+    public class MongoDbConnection : IMongoDbConnection
     {
         private readonly IMongoClient _client;
         private readonly IMongoDatabase _database;

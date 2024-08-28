@@ -2,9 +2,16 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Cron_DDEyC.Services
+namespace Cron_BolsaDeTrabajo.Services
 {
-    public class ApiService
+    // Interface for API Service
+    public interface IApiService
+    {
+        Task<string> CallApiAsync(string url);
+    }
+
+    // Implementation of API Service
+    public class ApiService : IApiService
     {
         private readonly HttpClient _httpClient;
 
