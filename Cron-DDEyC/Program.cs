@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Cron_BolsaDeTrabajo.Services;
 using Cron_BolsaDeTrabajo.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Cron_BolsaDeTrabajo
 {
@@ -25,9 +25,15 @@ namespace Cron_BolsaDeTrabajo
                 .AddSingleton<ICronService, CronService>()
                 .BuildServiceProvider();
 
-            // Start the Cron Service
             var cronService = serviceProvider.GetService<ICronService>();
+
+#if TESTING
+            // Execute testing method if in testing profile
+            cronService.TestCoreSignalAsync().Wait();
+#else
+            // Start the Cron Service
             cronService.StartAsync().Wait();
+#endif
 
             // Keep the application running
             Console.WriteLine("Press [Enter] to exit the program.");

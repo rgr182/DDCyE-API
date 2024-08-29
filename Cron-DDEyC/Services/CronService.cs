@@ -1,27 +1,23 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Microsoft.Extensions.Configuration;
-using NCrontab;
 using Cron_BolsaDeTrabajo.Infrastructure;
+using NCrontab;
 
 namespace Cron_BolsaDeTrabajo.Services
 {
-    // Interface for Cron Service
     public interface ICronService
     {
         Task StartAsync();
+        Task TestCoreSignalAsync();
     }
 
-    // Implementation of Cron Service
     public class CronService : ICronService
     {
         private readonly IMongoDbConnection _mongoDbConnection;
         private readonly IApiService _apiService;
-        private readonly IMongoCollection<BsonDocument> _configurationCollection;
-        private readonly Timer _timer;
+        private readonly IMongoCollection<BsonDocument> _ofertasLaboralesCollection;
+        private Timer _timer;
         private readonly string _cronExpression;
         private readonly IConfiguration _configuration;
 
@@ -33,7 +29,7 @@ namespace Cron_BolsaDeTrabajo.Services
 
             // Setup MongoDB collection access
             var mongoCollectionName = _configuration["MongoDB:CollectionName"];
-            _configurationCollection = _mongoDbConnection.GetCollection<BsonDocument>(mongoCollectionName);
+            _ofertasLaboralesCollection = _mongoDbConnection.GetCollection<BsonDocument>(mongoCollectionName);
 
             // Load cron expression from configuration
             _cronExpression = _configuration["CronJob:CronExpression"];
@@ -44,28 +40,117 @@ namespace Cron_BolsaDeTrabajo.Services
                 return;
             }
 
+#if TESTING
+            // In testing mode, directly run the test method
+            Task.Run(TestCoreSignalAsync).Wait();
+#else
+            // In normal mode, setup the cron job
+            InitializeCronJob();
+#endif
+        }
+
+        private void InitializeCronJob()
+        {
             // Initialize timer based on the cron expression
             TimeSpan timeUntilNextRun = CalculateTimeUntilNextRun(_cronExpression);
             _timer = new Timer(async _ => await ExecuteTaskAsync(), null, timeUntilNextRun, Timeout.InfiniteTimeSpan);
+            Console.WriteLine("Cron job initialized.");
         }
 
         public async Task StartAsync()
         {
-            // Initialize the cron job
             Console.WriteLine("Cron job started.");
+            // Further implementation to start the cron job can be added here
+        }
+
+        public async Task TestCoreSignalAsync()
+        {
+            Console.WriteLine("Starting API call tests...");
+
+            try
+            {
+                // Test fetching job IDs
+                List<int> jobIds = await _apiService.FetchJobIdsAsync();
+                if (jobIds.Count > 0)
+                {
+                    Console.WriteLine($"Fetched {jobIds.Count} job IDs from API.");
+                }
+                else
+                {
+                    Console.WriteLine("No job IDs fetched from API.");
+                }
+
+                // Test fetching job details for a limited number of jobs
+                int maxCollects = int.Parse(_configuration["Api:MaxCollects"]);
+
+                for (int i = 0; i < Math.Min(jobIds.Count, maxCollects); i++)
+                {
+                    int jobId = jobIds[i];
+                    string jobDetails = await _apiService.FetchJobDetailsAsync(jobId);
+
+                    if (jobDetails != null)
+                    {
+                        Console.WriteLine($"Job ID {jobId} details fetched successfully, testing saving to MongoDB...");
+                        var document = BsonDocument.Parse(jobDetails);
+
+                        try
+                        {
+                            await _ofertasLaboralesCollection.InsertOneAsync(document);
+                            Console.WriteLine($"Job ID {jobId} details saved to MongoDB.");
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"MongoDB error while saving details for Job ID {jobId}: {e.Message}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to fetch details for Job ID {jobId}.");
+                    }
+                }
+
+                Console.WriteLine("API call tests completed.");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Unexpected error during API call tests: {e.Message}");
+            }
         }
 
         private async Task ExecuteTaskAsync()
         {
             Console.WriteLine($"Executing task at {DateTime.Now}");
 
-            // HTTP call to the API using the service
-            string url = _configuration["Api:BaseUrl"];
-            string responseBody = await _apiService.CallApiAsync(url);
-
-            if (responseBody != null)
+            try
             {
-                Console.WriteLine($"API Response: {responseBody}");
+                List<int> jobIds = await _apiService.FetchJobIdsAsync();
+                int maxCollects = int.Parse(_configuration["Api:MaxCollects"]);
+
+                for (int i = 0; i < Math.Min(jobIds.Count, maxCollects); i++)
+                {
+                    int jobId = jobIds[i];
+                    string jobDetails = await _apiService.FetchJobDetailsAsync(jobId);
+
+                    if (jobDetails != null)
+                    {
+                        Console.WriteLine($"Job ID {jobId} details fetched, saving to MongoDB...");
+                        var document = BsonDocument.Parse(jobDetails);
+
+                        try
+                        {
+                            await _ofertasLaboralesCollection.InsertOneAsync(document);
+                            Console.WriteLine($"Job ID {jobId} details saved.");
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"MongoDB error while saving details for Job ID {jobId}: {e.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Unexpected error during task execution: {e.Message}");
             }
 
             // Reset the timer for the next run according to the cron expression
