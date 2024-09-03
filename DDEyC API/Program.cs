@@ -12,6 +12,17 @@ var configuration = builder.Configuration;
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Add CORS configuration to allow any origin, method, and header
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Add HttpContextAccessor
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
@@ -56,12 +67,14 @@ builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<IAuthUtils, AuthUtils>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
+
+// Use CORS policy
+app.UseCors("AllowAll");
 
 app.UseSwagger();
 app.UseSwaggerUI();

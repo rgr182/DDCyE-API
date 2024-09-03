@@ -11,47 +11,51 @@ namespace DDEyC_API.DataAccess.Services
 
     public class EmailService : IEmailService
     {
-        private readonly IConfiguration _configuration;
+        private readonly string _smtpClient;
+        private readonly string _smtpEmail;
+        private readonly string _smtpPassword;
 
         public EmailService(IConfiguration configuration)
         {
-            _configuration = configuration;
+            _smtpClient = configuration["SmtpSettings:SMTPClient"];
+            _smtpEmail = configuration["SmtpSettings:Email"];
+            _smtpPassword = configuration["SmtpSettings:Password"];
         }
 
         public async Task<bool> SendEmailAsync(EmailRequestDTO request)
         {
             try
             {
-                // Create a new SMTP client
-                var smtpClient = new SmtpClient("smtp.gmail.com")
+                // Crear un nuevo cliente SMTP
+                var smtpClient = new SmtpClient(_smtpClient)
                 {
                     Port = 587,
-                    Credentials = new NetworkCredential(
-                        _configuration["SmtpSettings:Email"],
-                        _configuration["SmtpSettings:Password"]),
                     EnableSsl = true,
+                    Credentials = new NetworkCredential(_smtpEmail, _smtpPassword),
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false
                 };
 
-                // Create a new mail message
+                // Crear un nuevo mensaje de correo
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(_configuration["SmtpSettings:Email"]),
+                    From = new MailAddress(_smtpEmail),
                     Subject = request.Subject,
                     Body = request.Body,
                     IsBodyHtml = true,
                 };
 
-                // Add the recipient to the mail message
+                // Agregar el destinatario al mensaje de correo
                 mailMessage.To.Add(request.To);
 
-                // Send the email asynchronously
+                // Enviar el correo de forma asíncrona
                 await smtpClient.SendMailAsync(mailMessage);
                 return true;
             }
             catch (Exception ex)
             {
-                // Log the exception
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                // Registrar la excepción
+                Console.WriteLine($"Error al enviar el correo: {ex.Message}");
                 return false;
             }
         }
