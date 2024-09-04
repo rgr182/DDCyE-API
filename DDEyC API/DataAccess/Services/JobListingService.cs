@@ -1,11 +1,16 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Globalization;
+using System.Text;
 using DDEyC_API.Models;
 using DDEyC_API.Models.DTOs;
 using DDEyC_API.DataAccess.Repositories;
 using MongoDB.Driver;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 
 namespace DDEyC_API.DataAccess.Services
 {
@@ -32,46 +37,130 @@ namespace DDEyC_API.DataAccess.Services
 
             if (!string.IsNullOrWhiteSpace(filter.Title))
             {
-                filterDefinition &= builder.Regex(x => x.Title, new BsonRegularExpression(filter.Title, "i"));
+                filterDefinition &= CreateFlexibleTextFilter("Title", filter.Title);
             }
 
             if (!string.IsNullOrWhiteSpace(filter.CompanyName))
             {
-                filterDefinition &= builder.Regex(x => x.CompanyName, new BsonRegularExpression(filter.CompanyName, "i"));
+                filterDefinition &= CreateFlexibleTextFilter("CompanyName", filter.CompanyName);
             }
 
             if (!string.IsNullOrWhiteSpace(filter.Location))
             {
-                filterDefinition &= builder.Regex(x => x.Location, new BsonRegularExpression(filter.Location, "i"));
+                filterDefinition &= CreateLocationFilter(filter.Location);
             }
 
             if (!string.IsNullOrWhiteSpace(filter.Seniority))
             {
-                filterDefinition &= builder.Regex(x => x.Seniority, new BsonRegularExpression($"^{Regex.Escape(filter.Seniority)}$", "i"));
+                filterDefinition &= CreateFlexibleTextFilter("Seniority", filter.Seniority);
             }
 
             if (!string.IsNullOrWhiteSpace(filter.EmploymentType))
             {
-                filterDefinition &= builder.Regex(x => x.EmploymentType, new BsonRegularExpression($"^{Regex.Escape(filter.EmploymentType)}$", "i"));
+                filterDefinition &= CreateFlexibleTextFilter("EmploymentType", filter.EmploymentType);
             }
 
             if (filter.JobFunctions != null && filter.JobFunctions.Any())
             {
-                filterDefinition &= builder.AnyIn(x => x.JobFunctions, filter.JobFunctions);
+                var jobFunctionFilters = filter.JobFunctions.Select(jf => 
+                    builder.ElemMatch("JobFunctions", CreateFlexibleTextFilter("", jf))
+                );
+                filterDefinition &= builder.Or(jobFunctionFilters);
             }
 
             if (filter.Industries != null && filter.Industries.Any())
             {
-                filterDefinition &= builder.ElemMatch(x => x.JobIndustries, y => filter.Industries.Contains(y.JobIndustryList.Industry));
+                var industryFilters = filter.Industries.Select(industry =>
+                    builder.ElemMatch("JobIndustries", 
+                        CreateFlexibleTextFilter("JobIndustryList.Industry", industry)
+                    )
+                );
+                filterDefinition &= builder.Or(industryFilters);
             }
 
             int limit = filter.Limit > 0 ? filter.Limit : 10;
+
+            _logger.LogInformation($"Executing query with filter: {filterDefinition.Render(BsonSerializer.LookupSerializer(typeof(JobListing)) as IBsonSerializer<JobListing>, null)}");
 
             var results = await _repository.GetJobListingsAsync(filterDefinition, limit);
 
             _logger.LogInformation($"Query returned {results.Count} results");
 
             return results;
+        }
+
+        private FilterDefinition<JobListing> CreateFlexibleTextFilter(string fieldName, string value)
+        {
+            var builder = Builders<JobListing>.Filter;
+            var words = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            var wordFilters = words.Select(word => 
+            {
+                var withoutDiacritics = RemoveDiacritics(word.ToLowerInvariant());
+                var withPotentialDiacritics = AddPotentialDiacritics(withoutDiacritics);
+                
+                return builder.Or(
+                    builder.Regex(fieldName, new BsonRegularExpression($".*{Regex.Escape(withoutDiacritics)}.*", "i")),
+                    builder.Regex(fieldName, new BsonRegularExpression($".*{withPotentialDiacritics}.*", "i"))
+                );
+            });
+
+            return builder.And(wordFilters);
+        }
+
+        private FilterDefinition<JobListing> CreateLocationFilter(string location)
+        {
+            return CreateFlexibleTextFilter("Location", location);
+        }
+
+        private static string RemoveDiacritics(string text)
+        {
+            var normalizedString = text.Normalize(NormalizationForm.FormD);
+            var stringBuilder = new StringBuilder();
+
+            foreach (var c in normalizedString)
+            {
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
+            }
+
+            return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private static string AddPotentialDiacritics(string input)
+        {
+            var result = new StringBuilder();
+            foreach (char c in input)
+            {
+                switch (c)
+                {
+                    case 'a':
+                        result.Append("[aáàâäã]");
+                        break;
+                    case 'e':
+                        result.Append("[eéèêë]");
+                        break;
+                    case 'i':
+                        result.Append("[iíìîï]");
+                        break;
+                    case 'o':
+                        result.Append("[oóòôöõ]");
+                        break;
+                    case 'u':
+                        result.Append("[uúùûü]");
+                        break;
+                    case 'n':
+                        result.Append("[nñ]");
+                        break;
+                    default:
+                        result.Append(c);
+                        break;
+                }
+            }
+            return result.ToString();
         }
     }
 }

@@ -91,17 +91,34 @@ namespace DDEyC_Assistant.Services
                         message = ageResponse.Message,
                         category = ageResponse.Category
                     });
-                case "get_job_listings":
-                    var args = JsonSerializer.Deserialize<JobListingFilter>(arguments);
+               case "get_job_listings":
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    var args = JsonSerializer.Deserialize<JobListingFilter>(arguments, options);
+                    
+                    if (args == null)
+                    {
+                        _logger.LogWarning("Failed to deserialize job listing arguments");
+                        return JsonSerializer.Serialize(new { error = "Invalid job listing arguments" });
+                    }
+
                     var queryParams = new Dictionary<string, string>
                     {
-                        { nameof(args.Title), args.Title },
-                        { nameof(args.CompanyName), args.CompanyName },
-                        { nameof(args.Location), args.Location },
-                        { nameof(args.Seniority), args.Seniority },
-                        { nameof(args.EmploymentType), args.EmploymentType },
-                        { nameof(args.Limit), args.Limit.ToString() }
+                        { nameof(JobListingFilter.Title), args.Title },
+                        { nameof(JobListingFilter.CompanyName), args.CompanyName },
+                        { nameof(JobListingFilter.Location), args.Location },
+                        { nameof(JobListingFilter.Seniority), args.Seniority },
+                        { nameof(JobListingFilter.EmploymentType), args.EmploymentType },
+                        { nameof(JobListingFilter.Limit), args.Limit.ToString() }
                     };
+
+                    // Remove null values
+                    queryParams = queryParams.Where(kvp => !string.IsNullOrEmpty(kvp.Value))
+                                             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
                     if (args.JobFunctions != null)
                         foreach (var func in args.JobFunctions)
                             queryParams.Add("JobFunctions", func);
@@ -109,14 +126,18 @@ namespace DDEyC_Assistant.Services
                         foreach (var industry in args.Industries)
                             queryParams.Add("Industries", industry);
 
-                    var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/joblistings{QueryHelpers.AddQueryString(string.Empty, queryParams)}";
-                    var response = await _httpClient.GetAsync(url);
+                    var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/joblistings";
+                    
+                    _logger.LogInformation($"Getting job listings with query params: {JsonSerializer.Serialize(queryParams)}");
+                    
+                    var response = await _httpClient.GetAsync(QueryHelpers.AddQueryString(url, queryParams));
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync();
                         return content;
                     }
                     return JsonSerializer.Serialize(new { error = "Failed to retrieve job listings" });
+
                 default:
                     _logger.LogWarning($"Unknown function: {functionName}");
                     return JsonSerializer.Serialize(new { error = $"Unknown function: {functionName}" });
