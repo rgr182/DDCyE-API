@@ -19,10 +19,11 @@ namespace DDEyC_API.DataAccess.Services
         Task<List<JobListing>> GetJobListingsAsync(JobListingFilter filter);
     }
 
-    public class JobListingService : IJobListingService
+public class JobListingService : IJobListingService
     {
         private readonly IJobListingRepository _repository;
         private readonly ILogger<JobListingService> _logger;
+        private const int MaxLevenshteinDistance = 2;
 
         public JobListingService(IJobListingRepository repository, ILogger<JobListingService> logger)
         {
@@ -98,10 +99,12 @@ namespace DDEyC_API.DataAccess.Services
             {
                 var withoutDiacritics = RemoveDiacritics(word.ToLowerInvariant());
                 var withPotentialDiacritics = AddPotentialDiacritics(withoutDiacritics);
+                var fuzzyPattern = CreateFuzzyPattern(withoutDiacritics);
                 
                 return builder.Or(
                     builder.Regex(fieldName, new BsonRegularExpression($".*{Regex.Escape(withoutDiacritics)}.*", "i")),
-                    builder.Regex(fieldName, new BsonRegularExpression($".*{withPotentialDiacritics}.*", "i"))
+                    builder.Regex(fieldName, new BsonRegularExpression($".*{withPotentialDiacritics}.*", "i")),
+                    builder.Regex(fieldName, new BsonRegularExpression(fuzzyPattern, "i"))
                 );
             });
 
@@ -161,6 +164,34 @@ namespace DDEyC_API.DataAccess.Services
                 }
             }
             return result.ToString();
+        }
+
+        private static string CreateFuzzyPattern(string word)
+        {
+            if (word.Length <= MaxLevenshteinDistance)
+            {
+                return $".*{Regex.Escape(word)}.*";
+            }
+
+            var fuzzyPattern = new StringBuilder();
+            fuzzyPattern.Append(".*");
+
+            for (int i = 0; i < word.Length; i++)
+            {
+                fuzzyPattern.Append('(');
+                for (int j = Math.Max(0, i - MaxLevenshteinDistance); j < Math.Min(word.Length, i + MaxLevenshteinDistance + 1); j++)
+                {
+                    if (j > Math.Max(0, i - MaxLevenshteinDistance))
+                    {
+                        fuzzyPattern.Append('|');
+                    }
+                    fuzzyPattern.Append(Regex.Escape(word[j].ToString()));
+                }
+                fuzzyPattern.Append(')');
+            }
+
+            fuzzyPattern.Append(".*");
+            return fuzzyPattern.ToString();
         }
     }
 }
