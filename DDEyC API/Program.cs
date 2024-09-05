@@ -30,7 +30,7 @@ builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "DDEyC API", Version = "v1" });
 
     // JWT security scheme configuration
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

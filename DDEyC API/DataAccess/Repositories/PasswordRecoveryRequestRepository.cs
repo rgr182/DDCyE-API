@@ -26,7 +26,7 @@ namespace DDEyC_API.DataAccess.Repositories
         {
             try
             {
-                _authContext.PasswordRecoveryRequests.Add(passwordRecoveryRequest);
+                _authContext.PasswordRecoveryRequest.Add(passwordRecoveryRequest);
                 await _authContext.SaveChangesAsync();
                 return passwordRecoveryRequest;
             }
@@ -41,7 +41,7 @@ namespace DDEyC_API.DataAccess.Repositories
         {
             try
             {
-                return await _authContext.PasswordRecoveryRequests
+                return await _authContext.PasswordRecoveryRequest
                     .FirstOrDefaultAsync(r => r.Token == token && r.ExpirationTime > DateTime.UtcNow);
             }
             catch (Exception ex)
@@ -55,7 +55,7 @@ namespace DDEyC_API.DataAccess.Repositories
         {
             try
             {
-                var request = await _authContext.PasswordRecoveryRequests
+                var request = await _authContext.PasswordRecoveryRequest
                     .FirstOrDefaultAsync(r => r.Token == token);
 
                 if (request != null)
