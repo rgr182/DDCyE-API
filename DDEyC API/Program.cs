@@ -66,6 +66,9 @@ builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<IAuthUtils, AuthUtils>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IPasswordRecoveryRequestService, PasswordRecoveryRequestService>();
+builder.Services.AddScoped<IPasswordRecoveryRequestRepository, PasswordRecoveryRequestRepository>();
+
 
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>

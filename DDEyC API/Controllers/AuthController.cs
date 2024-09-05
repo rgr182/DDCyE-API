@@ -11,12 +11,17 @@ namespace DDEyC.Controllers
     {
         private readonly ISessionService _sessionService;
         private readonly ILogger<AuthController> _logger;
-        public readonly IUserService _usersService;
+        private readonly IUserService _usersService;
+        private readonly IPasswordRecoveryRequestService _passwordRecoveryRequestService;
 
-        public AuthController(ISessionService sessionService, IUserService usersService, ILogger<AuthController> logger)
+        public AuthController(ISessionService sessionService,
+                              IUserService usersService,
+                              IPasswordRecoveryRequestService passwordRecoveryRequestService,
+                              ILogger<AuthController> logger)
         {
             _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
             _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
+            _passwordRecoveryRequestService = passwordRecoveryRequestService ?? throw new ArgumentNullException(nameof(passwordRecoveryRequestService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -44,7 +49,7 @@ namespace DDEyC.Controllers
                 _logger.LogError(ex, "An error occurred during login");
                 return Problem("An error occurred during login. Please contact the System Administrator");
             }
-        }       
+        }
 
         [HttpGet("{sessionId}")]
         public async Task<IActionResult> GetSession(int sessionId)
@@ -97,5 +102,28 @@ namespace DDEyC.Controllers
             }
         }
 
+        [AllowAnonymous]
+        [HttpPost("passwordRecovery")]
+        public async Task<IActionResult> PasswordRecovery([FromBody] string email)
+        {
+            try
+            {
+                // Aquí llamamos al servicio en lugar del repositorio directamente
+                var result = await _passwordRecoveryRequestService.InitiatePasswordRecovery(email);
+                if (result)
+                {
+                    return Ok("Password recovery instructions have been sent to your email.");
+                }
+                else
+                {
+                    return NotFound("User with the provided email does not exist.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during password recovery for {Email}", email);
+                return StatusCode(500, "An error occurred during password recovery.");
+            }
+        }
     }
 }

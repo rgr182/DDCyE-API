@@ -10,7 +10,7 @@ namespace DDEyC_API.DataAccess.Repositories
         Task<Users> GetUser(int id);
         Task<Users> GetUserByEmail(string email);
         Task<Users> AddUser(Users user);
-        Task<string> VerifyExistingEmail(string email);
+        Task<bool> VerifyExistingEmail(string email);
     }
 
     public class UserRepository : IUserRepository
@@ -78,12 +78,12 @@ namespace DDEyC_API.DataAccess.Repositories
             }
         }
 
-        public async Task<string> VerifyExistingEmail(string email)
+        public async Task<bool> VerifyExistingEmail(string email)
         {
             try
             {
                 var existingUser = await _authContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-                return existingUser != null ? "Email already exists" : "Email available";
+                return existingUser != null; // Retorna true si el correo existe, false si no
             }
             catch (Exception ex)
             {
