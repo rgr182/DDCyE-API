@@ -49,16 +49,16 @@ namespace DDEyC_API.Models
         public string Hash { get; set; }
 
         [BsonElement("company_id")]
-        public long CompanyId { get; set; }
+        public long? CompanyId { get; set; }
 
         [BsonElement("company_name")]
         public string CompanyName { get; set; }
 
         [BsonElement("company_url")]
-        public string CompanyUrl { get; set; }
+        public string? CompanyUrl { get; set; }
 
         [BsonElement("external_url")]
-        public string ExternalUrl { get; set; }
+        public string? ExternalUrl { get; set; }
 
         [BsonElement("deleted")]
         public int Deleted { get; set; }
@@ -67,10 +67,10 @@ namespace DDEyC_API.Models
         public int ApplicationActive { get; set; }
 
         [BsonElement("salary")]
-        public string Salary { get; set; }
+        public string? Salary { get; set; }
 
         [BsonElement("applicants_count")]
-        public string ApplicantsCount { get; set; }
+        public string? ApplicantsCount { get; set; }
 
         [BsonElement("linkedin_job_id")]
         [BsonRepresentation(BsonType.Int64)]

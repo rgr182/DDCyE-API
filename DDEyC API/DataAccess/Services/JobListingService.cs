@@ -19,11 +19,10 @@ namespace DDEyC_API.DataAccess.Services
         Task<List<JobListing>> GetJobListingsAsync(JobListingFilter filter);
     }
 
-public class JobListingService : IJobListingService
+  public class JobListingService : IJobListingService
     {
         private readonly IJobListingRepository _repository;
         private readonly ILogger<JobListingService> _logger;
-        private const int MaxLevenshteinDistance = 2;
 
         public JobListingService(IJobListingRepository repository, ILogger<JobListingService> logger)
         {
@@ -38,33 +37,33 @@ public class JobListingService : IJobListingService
 
             if (!string.IsNullOrWhiteSpace(filter.Title))
             {
-                filterDefinition &= CreateFlexibleTextFilter("Title", filter.Title);
+                filterDefinition &= CreateKeywordFilter("Title", filter.Title);
             }
 
             if (!string.IsNullOrWhiteSpace(filter.CompanyName))
             {
-                filterDefinition &= CreateFlexibleTextFilter("CompanyName", filter.CompanyName);
+                filterDefinition &= CreateKeywordFilter("CompanyName", filter.CompanyName);
             }
 
             if (!string.IsNullOrWhiteSpace(filter.Location))
             {
-                filterDefinition &= CreateLocationFilter(filter.Location);
+                filterDefinition &= CreateKeywordFilter("Location", filter.Location);
             }
 
             if (!string.IsNullOrWhiteSpace(filter.Seniority))
             {
-                filterDefinition &= CreateFlexibleTextFilter("Seniority", filter.Seniority);
+                filterDefinition &= CreateKeywordFilter("Seniority", filter.Seniority);
             }
 
             if (!string.IsNullOrWhiteSpace(filter.EmploymentType))
             {
-                filterDefinition &= CreateFlexibleTextFilter("EmploymentType", filter.EmploymentType);
+                filterDefinition &= CreateKeywordFilter("EmploymentType", filter.EmploymentType);
             }
 
             if (filter.JobFunctions != null && filter.JobFunctions.Any())
             {
                 var jobFunctionFilters = filter.JobFunctions.Select(jf => 
-                    builder.ElemMatch("JobFunctions", CreateFlexibleTextFilter("", jf))
+                    builder.ElemMatch("JobFunctions", CreateKeywordFilter("", jf))
                 );
                 filterDefinition &= builder.Or(jobFunctionFilters);
             }
@@ -73,7 +72,7 @@ public class JobListingService : IJobListingService
             {
                 var industryFilters = filter.Industries.Select(industry =>
                     builder.ElemMatch("JobIndustries", 
-                        CreateFlexibleTextFilter("JobIndustryList.Industry", industry)
+                        CreateKeywordFilter("JobIndustryList.Industry", industry)
                     )
                 );
                 filterDefinition &= builder.Or(industryFilters);
@@ -90,30 +89,33 @@ public class JobListingService : IJobListingService
             return results;
         }
 
-        private FilterDefinition<JobListing> CreateFlexibleTextFilter(string fieldName, string value)
+        private FilterDefinition<JobListing> CreateKeywordFilter(string fieldName, string value)
         {
             var builder = Builders<JobListing>.Filter;
-            var words = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var keywords = TokenizeInput(value);
             
-            var wordFilters = words.Select(word => 
+            var keywordFilters = keywords.Select(keyword =>
             {
-                var withoutDiacritics = RemoveDiacritics(word.ToLowerInvariant());
-                var withPotentialDiacritics = AddPotentialDiacritics(withoutDiacritics);
+                var withoutDiacritics = RemoveDiacritics(keyword);
                 var fuzzyPattern = CreateFuzzyPattern(withoutDiacritics);
                 
                 return builder.Or(
-                    builder.Regex(fieldName, new BsonRegularExpression($".*{Regex.Escape(withoutDiacritics)}.*", "i")),
-                    builder.Regex(fieldName, new BsonRegularExpression($".*{withPotentialDiacritics}.*", "i")),
+                    builder.Regex(fieldName, new BsonRegularExpression($"{Regex.Escape(keyword)}", "i")),
+                    builder.Regex(fieldName, new BsonRegularExpression($"{Regex.Escape(withoutDiacritics)}", "i")),
                     builder.Regex(fieldName, new BsonRegularExpression(fuzzyPattern, "i"))
                 );
             });
 
-            return builder.And(wordFilters);
+            // Use OR between keywords to allow partial matches
+            return builder.Or(keywordFilters);
         }
 
-        private FilterDefinition<JobListing> CreateLocationFilter(string location)
+        private IEnumerable<string> TokenizeInput(string input)
         {
-            return CreateFlexibleTextFilter("Location", location);
+            return input.ToLowerInvariant()
+                .Split(new[] { ' ', ',', ';', '-', '_' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(keyword => keyword.Trim())
+                .Where(keyword => keyword.Length > 1);
         }
 
         private static string RemoveDiacritics(string text)
@@ -133,65 +135,25 @@ public class JobListingService : IJobListingService
             return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
         }
 
-        private static string AddPotentialDiacritics(string input)
-        {
-            var result = new StringBuilder();
-            foreach (char c in input)
-            {
-                switch (c)
-                {
-                    case 'a':
-                        result.Append("[aáàâäã]");
-                        break;
-                    case 'e':
-                        result.Append("[eéèêë]");
-                        break;
-                    case 'i':
-                        result.Append("[iíìîï]");
-                        break;
-                    case 'o':
-                        result.Append("[oóòôöõ]");
-                        break;
-                    case 'u':
-                        result.Append("[uúùûü]");
-                        break;
-                    case 'n':
-                        result.Append("[nñ]");
-                        break;
-                    default:
-                        result.Append(c);
-                        break;
-                }
-            }
-            return result.ToString();
-        }
-
         private static string CreateFuzzyPattern(string word)
         {
-            if (word.Length <= MaxLevenshteinDistance)
+            if (word.Length <= 3)
             {
-                return $".*{Regex.Escape(word)}.*";
+                return Regex.Escape(word);
             }
 
-            var fuzzyPattern = new StringBuilder();
-            fuzzyPattern.Append(".*");
+            var sb = new StringBuilder();
 
             for (int i = 0; i < word.Length; i++)
             {
-                fuzzyPattern.Append('(');
-                for (int j = Math.Max(0, i - MaxLevenshteinDistance); j < Math.Min(word.Length, i + MaxLevenshteinDistance + 1); j++)
-                {
-                    if (j > Math.Max(0, i - MaxLevenshteinDistance))
-                    {
-                        fuzzyPattern.Append('|');
-                    }
-                    fuzzyPattern.Append(Regex.Escape(word[j].ToString()));
-                }
-                fuzzyPattern.Append(')');
+                sb.Append('[');
+                if (i > 0) sb.Append(Regex.Escape(word[i - 1].ToString()));
+                sb.Append(Regex.Escape(word[i].ToString()));
+                if (i < word.Length - 1) sb.Append(Regex.Escape(word[i + 1].ToString()));
+                sb.Append("]");
             }
 
-            fuzzyPattern.Append(".*");
-            return fuzzyPattern.ToString();
+            return sb.ToString();
         }
     }
 }
