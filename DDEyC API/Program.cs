@@ -75,21 +75,19 @@ builder.Services.AddDbContext<AuthContext>(options =>
 
 var app = builder.Build();
 
-// Use CORS policy
-app.UseCors("AllowAll");
-
-// Use Swagger
-app.UseSwagger();
-app.UseSwaggerUI();
-
-// Serve static files (necessary for MVC with Razor)
-app.UseStaticFiles();
+// Middleware order is crucial here
 
 // Enable HTTPS redirection
 app.UseHttpsRedirection();
 
-// Correct order: Routing first, then Authentication and Authorization
+// Use static files for MVC views
+app.UseStaticFiles();
+
+// Correct order: Routing first, then CORS, then Authentication and Authorization
 app.UseRouting();
+
+// Enable CORS after routing but before authentication/authorization
+app.UseCors("AllowAll");
 
 // Enable Authentication and Authorization after UseRouting
 app.UseAuthentication();
@@ -106,6 +104,10 @@ app.UseEndpoints(endpoints =>
         name: "default",
         pattern: "{controller=Home}/{action=Index}/{id?}");
 });
+
+// Use Swagger
+app.UseSwagger();
+app.UseSwaggerUI();
 
 // Run the application
 app.Run();
