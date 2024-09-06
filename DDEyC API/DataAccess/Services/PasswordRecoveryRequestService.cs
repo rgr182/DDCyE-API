@@ -109,7 +109,7 @@ namespace DDEyC_API.DataAccess.Services
                 };
 
                 // Save the password recovery request to the database
-                await _passwordRecoveryRequestRepository.CreatePasswordRecoveryRequest(passwordRecoveryRequest);
+                await _passwordRecoveryRequestRepository.CreateOrUpdatePasswordRecoveryRequest(passwordRecoveryRequest);
 
                 var recoveryLink = $"{_recoveryLinkBaseUrl}?token={token}";
 
