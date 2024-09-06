@@ -6,25 +6,29 @@ namespace DDEyC.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    public class AuthController : ControllerBase
+    public class AuthController : Controller
     {
-        private readonly ISessionService _sessionService;
-        private readonly ILogger<AuthController> _logger;
-        private readonly IUserService _usersService;
         private readonly IPasswordRecoveryRequestService _passwordRecoveryRequestService;
+        private readonly ILogger<AuthController> _logger;
+        private readonly ISessionService _sessionService;
+        private readonly IUserService _usersService;
 
-        public AuthController(ISessionService sessionService,
-                              IUserService usersService,
-                              IPasswordRecoveryRequestService passwordRecoveryRequestService,
-                              ILogger<AuthController> logger)
+        public AuthController(IPasswordRecoveryRequestService passwordRecoveryRequestService,
+                              ILogger<AuthController> logger,
+                              ISessionService sessionService,
+                              IUserService usersService)
         {
-            _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
-            _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
-            _passwordRecoveryRequestService = passwordRecoveryRequestService ?? throw new ArgumentNullException(nameof(passwordRecoveryRequestService));
+            _passwordRecoveryRequestService = passwordRecoveryRequestService;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
+            _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
         }
 
+        #region API Endpoints
+
+        /// <summary>
+        /// Login method to authenticate users.
+        /// </summary>
         [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login(string email, string password)
@@ -51,6 +55,9 @@ namespace DDEyC.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves a session by ID.
+        /// </summary>
         [HttpGet("{sessionId}")]
         public async Task<IActionResult> GetSession(int sessionId)
         {
@@ -73,6 +80,9 @@ namespace DDEyC.Controllers
             }
         }
 
+        /// <summary>
+        /// Validates a session token.
+        /// </summary>
         [HttpGet("validateSession")]
         [AllowAnonymous]
         public async Task<IActionResult> ValidateSession()
@@ -102,13 +112,15 @@ namespace DDEyC.Controllers
             }
         }
 
+        /// <summary>
+        /// Handles password recovery requests.
+        /// </summary>
         [AllowAnonymous]
         [HttpPost("passwordRecovery")]
         public async Task<IActionResult> PasswordRecovery([FromBody] string email)
         {
             try
             {
-                // Aquí llamamos al servicio en lugar del repositorio directamente
                 var result = await _passwordRecoveryRequestService.InitiatePasswordRecovery(email);
                 if (result)
                 {
@@ -125,5 +137,60 @@ namespace DDEyC.Controllers
                 return StatusCode(500, "An error occurred during password recovery.");
             }
         }
+
+        #endregion
+
+        #region MVC Views
+
+        /// <summary>
+        /// Validates the recovery token for password reset.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("validateRecoveryToken")]
+        public async Task<IActionResult> ValidateRecoveryToken(string token)
+        {
+            var isValidToken = await _passwordRecoveryRequestService.ValidateToken(token);
+
+            if (isValidToken)
+            {
+                ViewBag.Token = token;  // Pass the token to the view.
+                return View("PasswordReset");  // Load the password reset view.
+            }
+            else
+            {
+                ViewData["Error"] = "Invalid or expired password recovery token.";
+                return View("Error");
+            }
+        }
+
+
+
+        /// <summary>
+        /// Resets the password.
+        /// </summary>
+        [HttpPost("resetPassword")]
+        public async Task<IActionResult> ResetPassword(string token, string newPassword, string confirmPassword)
+        {
+            if (newPassword != confirmPassword)
+            {
+                ViewData["Error"] = "Passwords do not match.";
+                return View("PasswordReset");
+            }
+
+            var result = await _passwordRecoveryRequestService.ResetPassword(token, newPassword);
+
+            if (result)
+            {
+                ViewData["Success"] = "Your password has been successfully reset.";
+                return View("PasswordReset"); // You can also redirect to another success page if needed.
+            }
+            else
+            {
+                ViewData["Error"] = "Error resetting password.";
+                return View("PasswordReset");
+            }
+        }
+
+        #endregion
     }
 }

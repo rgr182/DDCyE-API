@@ -9,8 +9,8 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
-// Add services to the container.
-builder.Services.AddControllers();
+// Add services to the container, including controllers with views (for Razor)
+builder.Services.AddControllersWithViews();  // Permite tanto API como vistas Razor
 
 // Add CORS configuration to allow any origin, method, and header
 builder.Services.AddCors(options =>
@@ -69,7 +69,6 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestService, PasswordRecoveryRequestService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestRepository, PasswordRecoveryRequestRepository>();
 
-
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
@@ -79,10 +78,34 @@ var app = builder.Build();
 // Use CORS policy
 app.UseCors("AllowAll");
 
+// Use Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
+
+// Serve static files (necessary for MVC with Razor)
+app.UseStaticFiles();
+
+// Enable HTTPS redirection
 app.UseHttpsRedirection();
+
+// Correct order: Routing first, then Authentication and Authorization
+app.UseRouting();
+
+// Enable Authentication and Authorization after UseRouting
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
+
+// Configure routing for API controllers and MVC (with Razor views)
+app.UseEndpoints(endpoints =>
+{
+    // Map API controllers
+    endpoints.MapControllers();
+
+    // Map default MVC route for Razor views
+    endpoints.MapControllerRoute(
+        name: "default",
+        pattern: "{controller=Home}/{action=Index}/{id?}");
+});
+
+// Run the application
 app.Run();
