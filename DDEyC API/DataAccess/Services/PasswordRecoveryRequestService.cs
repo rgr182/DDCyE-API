@@ -1,4 +1,5 @@
-﻿using DDEyC_API.DataAccess.Repositories;
+﻿using DDEyC_API.DataAccess.Models.DTOs;
+using DDEyC_API.DataAccess.Repositories;
 using DDEyC_Auth.DataAccess.Models.Entities;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
@@ -19,6 +20,7 @@ namespace DDEyC_API.DataAccess.Services
         private readonly IUserRepository _userRepository;
         private readonly ILogger<PasswordRecoveryRequestService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
         private readonly string _recoveryLinkBaseUrl;
         private readonly int _tokenValidityMinutes;
@@ -27,12 +29,14 @@ namespace DDEyC_API.DataAccess.Services
             IPasswordRecoveryRequestRepository passwordRecoveryRequestRepository,
             IUserRepository userRepository,
             ILogger<PasswordRecoveryRequestService> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IEmailService emailService)
         {
             _passwordRecoveryRequestRepository = passwordRecoveryRequestRepository;
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
 
             // Load values from configuration (appsettings.json)
             _recoveryLinkBaseUrl = _configuration["PasswordRecovery:RecoveryLinkBaseUrl"] ?? throw new ArgumentNullException("RecoveryLinkBaseUrl not found in configuration.");
@@ -107,8 +111,15 @@ namespace DDEyC_API.DataAccess.Services
                 // Save the password recovery request to the database
                 await _passwordRecoveryRequestRepository.CreatePasswordRecoveryRequest(passwordRecoveryRequest);
 
-                // Log the recovery link (this should ideally be sent via email)
                 var recoveryLink = $"{_recoveryLinkBaseUrl}?token={token}";
+
+                await _emailService.SendEmailAsync(new EmailRequestDTO
+                {
+                    Body = recoveryLink,
+                    Subject = "Recuperar Contraseña",
+                    To = email
+                });           
+                
                 _logger.LogInformation($"Password recovery link for {email}: {recoveryLink}");
 
                 return true;
