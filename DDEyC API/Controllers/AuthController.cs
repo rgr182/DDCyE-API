@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using DDEyC_API.DataAccess.Services;
 using Microsoft.AspNetCore.Authorization;
+using DDEyC_API.DataAccess.Models.DTOs;
 
 namespace DDEyC.Controllers
 {
@@ -169,19 +170,28 @@ namespace DDEyC.Controllers
         /// Resets the password.
         /// </summary>
         [HttpPost("resetPassword")]
-        public async Task<IActionResult> ResetPassword(string token, string newPassword)
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDTO resetPasswordDto)
         {
-           
-            var result = await _passwordRecoveryRequestService.ResetPassword(token, newPassword);
+            try
+            {
+                // Verifica que el token y la nueva contraseña no sean nulos
+                if (string.IsNullOrEmpty(resetPasswordDto.Token) || string.IsNullOrEmpty(resetPasswordDto.NewPassword))
+                {
+                    ViewData["Error"] = "El token y la nueva contraseña son obligatorios.";
+                    return View("PasswordReset");
+                }
 
-            if (result)
-            {
-                ViewData["Success"] = "Your password has been successfully reset.";
-                return View("PasswordReset"); // You can also redirect to another success page if needed.
+                // Llama al servicio de recuperación de contraseña
+                var result = await _passwordRecoveryRequestService.ResetPassword(resetPasswordDto.Token, resetPasswordDto.NewPassword);
+
+               return Ok(result);
             }
-            else
+            catch (Exception ex)
             {
-                ViewData["Error"] = "Error resetting password.";
+                // En caso de cualquier excepción, captura el error y muestra un mensaje
+                ViewData["Error"] = "Ocurrió un error inesperado: " + ex.Message;
+                // También puedes registrar el error si tienes un logger
+                // _logger.LogError(ex, "Error during password reset");
                 return View("PasswordReset");
             }
         }
