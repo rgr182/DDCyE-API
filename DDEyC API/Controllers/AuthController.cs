@@ -169,14 +169,9 @@ namespace DDEyC.Controllers
         /// Resets the password.
         /// </summary>
         [HttpPost("resetPassword")]
-        public async Task<IActionResult> ResetPassword(string token, string newPassword, string confirmPassword)
+        public async Task<IActionResult> ResetPassword(string token, string newPassword)
         {
-            if (newPassword != confirmPassword)
-            {
-                ViewData["Error"] = "Passwords do not match.";
-                return View("PasswordReset");
-            }
-
+           
             var result = await _passwordRecoveryRequestService.ResetPassword(token, newPassword);
 
             if (result)

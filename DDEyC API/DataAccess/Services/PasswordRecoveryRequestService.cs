@@ -39,9 +39,44 @@ namespace DDEyC_API.DataAccess.Services
             _tokenValidityMinutes = int.Parse(_configuration["PasswordRecovery:TokenValidityMinutes"] ?? throw new ArgumentNullException("TokenValidityMinutes not found in configuration."));
         }
 
-        /// <summary>
-        /// Initiates password recovery by generating a token and sending a recovery link.
-        /// </summary>
+        public async Task<bool> ResetPassword(string token, string newPassword)
+        {
+            try
+            {
+                // Validate the recovery token
+                var recoveryRequest = await _passwordRecoveryRequestRepository.GetPasswordRecoveryRequestByToken(token);
+                if (recoveryRequest == null)
+                {
+                    _logger.LogWarning("Invalid or expired token: {Token}", token);
+                    return false;
+                }
+
+                // Fetch the user and update the password
+                var user = await _userRepository.GetUser(recoveryRequest.UserId);
+                if (user == null)
+                {
+                    _logger.LogError("User not found for ID: {UserId}", recoveryRequest.UserId);
+                    return false;
+                }
+
+                // Hash the new password
+                user.Password = HashPassword(newPassword);
+
+                // Update the user's password in the database
+                await _userRepository.UpdateUser(user);
+
+                // Invalidate the token after use
+                await _passwordRecoveryRequestRepository.InvalidateToken(token);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting password for token: {Token}", token);
+                return false;
+            }
+        }
+
         public async Task<bool> InitiatePasswordRecovery(string email)
         {
             try
@@ -85,9 +120,6 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
-        /// <summary>
-        /// Validates the recovery token to ensure it is not expired.
-        /// </summary>
         public async Task<bool> ValidateToken(string token)
         {
             try
@@ -107,50 +139,6 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
-        /// <summary>
-        /// Resets the user's password after validating the recovery token.
-        /// </summary>
-        public async Task<bool> ResetPassword(string token, string newPassword)
-        {
-            try
-            {
-                // Validate the recovery token
-                var recoveryRequest = await _passwordRecoveryRequestRepository.GetPasswordRecoveryRequestByToken(token);
-                if (recoveryRequest == null)
-                {
-                    _logger.LogWarning("Invalid or expired token: {Token}", token);
-                    return false;
-                }
-
-                // Fetch the user and update the password
-                var user = await _userRepository.GetUser(recoveryRequest.UserId);
-                if (user == null)
-                {
-                    _logger.LogError("User not found for ID: {UserId}", recoveryRequest.UserId);
-                    return false;
-                }
-
-                // Hash the new password
-                user.Password = HashPassword(newPassword);
-
-                // Update the user's password in the database
-                await _userRepository.UpdateUser(user);
-
-                // Invalidate the token after use
-                await _passwordRecoveryRequestRepository.InvalidateToken(token);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error resetting password for token: {Token}", token);
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Generates a URL-safe encrypted token using SHA-256 and Base64 encoding.
-        /// </summary>
         private string GenerateEncryptedToken()
         {
             var guid = Guid.NewGuid().ToString();
@@ -164,9 +152,7 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
-        /// <summary>
-        /// Hashes the given password using SHA-256.
-        /// </summary>
+
         private string HashPassword(string password)
         {
             using (var sha256 = SHA256.Create())
