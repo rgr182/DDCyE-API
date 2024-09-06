@@ -5,7 +5,7 @@ using DDEyC_API.Models;
 using DDEyC_API.DataAccess.Services;
 using DDEyC_API.Models.DTOs;
 
-namespace YourNamespace.Controllers
+namespace DDEyC_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
