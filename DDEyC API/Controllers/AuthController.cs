@@ -174,23 +174,23 @@ namespace DDEyC.Controllers
         {
             try
             {
-                // Verifica que el token y la nueva contraseña no sean nulos
+                // Verify that the token and new password are not null
                 if (string.IsNullOrEmpty(resetPasswordDto.Token) || string.IsNullOrEmpty(resetPasswordDto.NewPassword))
                 {
                     ViewData["Error"] = "El token y la nueva contraseña son obligatorios.";
                     return View("PasswordReset");
                 }
 
-                // Llama al servicio de recuperación de contraseña
+                // Call the password recovery service
                 var result = await _passwordRecoveryRequestService.ResetPassword(resetPasswordDto.Token, resetPasswordDto.NewPassword);
 
                return Ok(result);
             }
             catch (Exception ex)
             {
-                // En caso de cualquier excepción, captura el error y muestra un mensaje
+                // In case of any exception, catch the error and display a message
                 ViewData["Error"] = "Ocurrió un error inesperado: " + ex.Message;
-                // También puedes registrar el error si tienes un logger
+                // You can also log the error if you have a logger
                 // _logger.LogError(ex, "Error during password reset");
                 return View("PasswordReset");
             }
