@@ -11,7 +11,7 @@ namespace DDEyC_API.DataAccess.Repositories
         Task<Users> GetUserByEmail(string email);
         Task<Users> AddUser(Users user);
         Task<bool> VerifyExistingEmail(string email);
-        Task UpdateUser(Users user); // Método para actualizar el usuario
+        Task UpdateUser(Users user); // Method to update the user
     }
 
     public class UserRepository : IUserRepository
@@ -25,7 +25,7 @@ namespace DDEyC_API.DataAccess.Repositories
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        // Implementación de los métodos de la interfaz
+        // Implementation of the interface methods
 
         public async Task<Users> AddUser(Users user)
         {
@@ -86,7 +86,7 @@ namespace DDEyC_API.DataAccess.Repositories
             try
             {
                 var existingUser = await _authContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-                return existingUser != null; // Retorna true si el correo existe, false si no
+                return existingUser != null; // Returns true if the email exists, false if not
             }
             catch (Exception ex)
             {
@@ -95,13 +95,13 @@ namespace DDEyC_API.DataAccess.Repositories
             }
         }
 
-        // Método nuevo para actualizar al usuario
+        // New method to update the user
         public async Task UpdateUser(Users user)
         {
             try
             {
-                _authContext.Users.Update(user); // Actualiza el usuario en el contexto
-                await _authContext.SaveChangesAsync(); // Guarda los cambios en la base de datos
+                _authContext.Users.Update(user); // Updates the user in the context
+                await _authContext.SaveChangesAsync(); // Saves the changes in the database
             }
             catch (Exception ex)
             {
