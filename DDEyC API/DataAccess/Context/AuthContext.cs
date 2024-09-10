@@ -16,6 +16,7 @@ namespace DDEyC_API.DataAccess.Context
         }
 
         public DbSet<Users> Users { get; set; }
-        public DbSet<Sessions> Sessions { get; set; }       
+        public DbSet<Sessions> Sessions { get; set; }
+        public DbSet<PasswordRecoveryRequest> PasswordRecoveryRequest { get; set; }
     }
 }

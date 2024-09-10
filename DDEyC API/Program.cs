@@ -9,8 +9,8 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
-// Add services to the container.
-builder.Services.AddControllers();
+// Add services to the container, including controllers with views (for Razor)
+builder.Services.AddControllersWithViews();  // Permite tanto API como vistas Razor
 
 // Add CORS configuration to allow any origin, method, and header
 builder.Services.AddCors(options =>
@@ -30,7 +30,7 @@ builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "DDEyC API", Version = "v1" });
 
     // JWT security scheme configuration
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -66,8 +66,8 @@ builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<IAuthUtils, AuthUtils>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IJobListingRepository, JobListingRepository>();
-builder.Services.AddScoped<IJobListingService, JobListingService>();
+builder.Services.AddScoped<IPasswordRecoveryRequestService, PasswordRecoveryRequestService>();
+builder.Services.AddScoped<IPasswordRecoveryRequestRepository, PasswordRecoveryRequestRepository>();
 
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>
@@ -75,13 +75,39 @@ builder.Services.AddDbContext<AuthContext>(options =>
 
 var app = builder.Build();
 
-// Use CORS policy
+// Middleware order is crucial here
+
+// Enable HTTPS redirection
+app.UseHttpsRedirection();
+
+// Use static files for MVC views
+app.UseStaticFiles();
+
+// Correct order: Routing first, then CORS, then Authentication and Authorization
+app.UseRouting();
+
+// Enable CORS after routing but before authentication/authorization
 app.UseCors("AllowAll");
 
-app.UseSwagger();
-app.UseSwaggerUI();
-app.UseHttpsRedirection();
+// Enable Authentication and Authorization after UseRouting
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
+
+// Configure routing for API controllers and MVC (with Razor views)
+app.UseEndpoints(endpoints =>
+{
+    // Map API controllers
+    endpoints.MapControllers();
+
+    // Map default MVC route for Razor views
+    endpoints.MapControllerRoute(
+        name: "default",
+        pattern: "{controller=Home}/{action=Index}/{id?}");
+});
+
+// Use Swagger
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// Run the application
 app.Run();

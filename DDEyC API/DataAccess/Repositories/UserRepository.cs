@@ -10,7 +10,8 @@ namespace DDEyC_API.DataAccess.Repositories
         Task<Users> GetUser(int id);
         Task<Users> GetUserByEmail(string email);
         Task<Users> AddUser(Users user);
-        Task<string> VerifyExistingEmail(string email);
+        Task<bool> VerifyExistingEmail(string email);
+        Task UpdateUser(Users user); // Método para actualizar el usuario
     }
 
     public class UserRepository : IUserRepository
@@ -23,6 +24,8 @@ namespace DDEyC_API.DataAccess.Repositories
             _authContext = authContext;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
+
+        // Implementación de los métodos de la interfaz
 
         public async Task<Users> AddUser(Users user)
         {
@@ -78,16 +81,31 @@ namespace DDEyC_API.DataAccess.Repositories
             }
         }
 
-        public async Task<string> VerifyExistingEmail(string email)
+        public async Task<bool> VerifyExistingEmail(string email)
         {
             try
             {
                 var existingUser = await _authContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-                return existingUser != null ? "Email already exists" : "Email available";
+                return existingUser != null; // Retorna true si el correo existe, false si no
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while verifying existing email");
+                throw;
+            }
+        }
+
+        // Método nuevo para actualizar al usuario
+        public async Task UpdateUser(Users user)
+        {
+            try
+            {
+                _authContext.Users.Update(user); // Actualiza el usuario en el contexto
+                await _authContext.SaveChangesAsync(); // Guarda los cambios en la base de datos
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while updating user with ID {UserId}", user.UserId);
                 throw;
             }
         }
