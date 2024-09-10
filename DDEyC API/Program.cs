@@ -68,7 +68,8 @@ builder.Services.AddScoped<IAuthUtils, AuthUtils>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestService, PasswordRecoveryRequestService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestRepository, PasswordRecoveryRequestRepository>();
-
+builder.Services.AddScoped<IJobListingService, JobListingService>();
+builder.Services.AddScoped<IJobListingRepository, JobListingRepository>();
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
