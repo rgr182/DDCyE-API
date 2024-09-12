@@ -97,13 +97,9 @@ namespace DDEyC_API.DataAccess.Services
             try
             {
                 var user = await _userRepository.GetUserByEmail(email);
-                if (user == null)
+                if (user == null || !CheckHash(user, password))
                 {
-                    return null;
-                }
-                if (!CheckHash(user, password))
-                {
-                    throw new Exception("Invalid credentials");
+                    throw new UnauthorizedAccessException("Invalid credentials");
                 }
 
                 // Return the user object after successful login
