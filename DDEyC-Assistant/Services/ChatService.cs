@@ -33,8 +33,12 @@ namespace DDEyC_Assistant.Services
         public async Task<ChatStartResultDto> StartChatAsync()
         {
             var thread = await _assistantService.CreateThreadAsync();
-            const string welcomeMessage = "Hello! I'm a chatbot designed to help you look for jobs. I'm here to help you. What can I do for you?";
-            
+            const string welcomeMessageDefault = "Hola! soy un chatbot desarrollado para ayudarte a buscar empleos. ¿Cómo puedo ayudarte?";
+            var welcomeMessage = _configuration.GetValue<string>("AppSettings:WelcomeMessage");
+            if (string.IsNullOrEmpty(welcomeMessage))
+            {
+                welcomeMessage = welcomeMessageDefault;
+            }
             await _assistantService.AddMessageToThreadAsync(thread.Id, welcomeMessage, MessageRole.Assistant);
             return new ChatStartResultDto { WelcomeMessage = welcomeMessage, ThreadId = thread.Id };
         }
