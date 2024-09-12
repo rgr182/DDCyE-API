@@ -86,7 +86,7 @@ app.UseHttpsRedirection();
 // Use static files for MVC views
 app.UseStaticFiles();
 
-// Sirve archivos estáticos desde la carpeta Assets
+// add the file Assets
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(
