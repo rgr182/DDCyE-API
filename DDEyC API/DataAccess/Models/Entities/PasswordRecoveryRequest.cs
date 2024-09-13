@@ -14,6 +14,6 @@ namespace DDEyC_Auth.DataAccess.Models.Entities
         public int UserId { get; set; }
 
         // Property for token validity time
-        public static int TokenValidityMinutes { get; set; } = 30;  
+        public static int TokenValidityMinutes { get; set; } = 600;  
     }
 }

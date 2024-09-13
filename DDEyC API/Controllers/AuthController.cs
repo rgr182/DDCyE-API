@@ -113,6 +113,14 @@ namespace DDEyC.Controllers
             }
         }
 
+        //vista de ingresar email
+        [AllowAnonymous]
+        [HttpGet("passwordRecoveryView")]
+        public IActionResult PasswordRecoveryView()
+        {
+            return View("PasswordRecovery");
+        }
+
         /// <summary>
         /// Handles password recovery requests.
         /// </summary>
