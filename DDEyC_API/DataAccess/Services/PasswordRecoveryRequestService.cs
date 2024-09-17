@@ -1,6 +1,13 @@
-﻿using DDEyC_API.DataAccess.Models.DTOs;
+﻿ using DDEyC_API.DataAccess.Models.DTOs;
 using DDEyC_API.DataAccess.Repositories;
 using DDEyC_Auth.DataAccess.Models.Entities;
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.Razor;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,77 +21,46 @@ namespace DDEyC_API.DataAccess.Services
         Task<bool> ResetPassword(string token, string newPassword);
     }
 
-    public class PasswordRecoveryRequestService : IPasswordRecoveryRequestService
+
+
+
+  public class PasswordRecoveryRequestService : IPasswordRecoveryRequestService
     {
         private readonly IPasswordRecoveryRequestRepository _passwordRecoveryRequestRepository;
         private readonly IUserRepository _userRepository;
         private readonly ILogger<PasswordRecoveryRequestService> _logger;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         private readonly string _recoveryLinkBaseUrl;
         private readonly int _tokenValidityMinutes;
+        private readonly string _emailTemplatePath;
 
         public PasswordRecoveryRequestService(
             IPasswordRecoveryRequestRepository passwordRecoveryRequestRepository,
             IUserRepository userRepository,
             ILogger<PasswordRecoveryRequestService> logger,
             IConfiguration configuration,
-            IEmailService emailService)
+            IEmailService emailService,
+            IWebHostEnvironment webHostEnvironment)
         {
             _passwordRecoveryRequestRepository = passwordRecoveryRequestRepository;
-            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
+            _userRepository = userRepository;
+            _logger = logger;
+            _configuration = configuration;
+            _emailService = emailService;
+            _webHostEnvironment = webHostEnvironment;
 
-            _recoveryLinkBaseUrl = _configuration["PasswordRecovery:RecoveryLinkBaseUrl"] ?? throw new ArgumentNullException("RecoveryLinkBaseUrl not found in configuration.");
-            _tokenValidityMinutes = int.Parse(_configuration["PasswordRecovery:TokenValidityMinutes"] ?? throw new ArgumentNullException("TokenValidityMinutes not found in configuration."));
+            _recoveryLinkBaseUrl = _configuration["PasswordRecovery:RecoveryLinkBaseUrl"];
+            _tokenValidityMinutes = int.Parse(_configuration["PasswordRecovery:TokenValidityMinutes"]);
+            _emailTemplatePath = _configuration["PasswordRecovery:EmailTemplatePath"];
         }
 
-        public async Task<bool> ResetPassword(string token, string newPassword)
+public async Task<bool> InitiatePasswordRecovery(string email)
         {
             try
             {
-                // Validate the recovery token
-                var recoveryRequest = await _passwordRecoveryRequestRepository.GetPasswordRecoveryRequestByToken(token);
-                if (recoveryRequest == null)
-                {
-                    _logger.LogWarning("Invalid or expired token: {Token}", token);
-                    return false;
-                }
-
-                // Fetch the user and update the password
-                var user = await _userRepository.GetUser(recoveryRequest.UserId);
-                if (user == null)
-                {
-                    _logger.LogError("User not found for ID: {UserId}", recoveryRequest.UserId);
-                    return false;
-                }
-
-                // Encrypt the new password using BCrypt
-                user.Password = HashPassword(newPassword);
-
-                // Update the user's password in the database
-                await _userRepository.UpdateUser(user);
-
-                // Invalidate the token after use
-                await _passwordRecoveryRequestRepository.InvalidateToken(token);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error resetting password for token: {Token}", token);
-                return false;
-            }
-        }
-
-        public async Task<bool> InitiatePasswordRecovery(string email)
-        {
-            try
-            {
-                // Verify if the email exists in the database
                 var emailExists = await _userRepository.VerifyExistingEmail(email);
                 if (!emailExists)
                 {
@@ -92,33 +68,31 @@ namespace DDEyC_API.DataAccess.Services
                     return false;
                 }
 
-                // Generate a recovery token
                 var token = GenerateEncryptedToken();
                 var user = await _userRepository.GetUserByEmail(email);
 
-                // Create a new password recovery request
                 var passwordRecoveryRequest = new PasswordRecoveryRequest
                 {
                     UserId = user.UserId,
                     Email = email,
                     Token = token,
-                    ExpirationTime = DateTime.UtcNow.AddMinutes(_tokenValidityMinutes) // Token validity from config
+                    ExpirationTime = DateTime.UtcNow.AddMinutes(_tokenValidityMinutes)
                 };
 
-                // Save the password recovery request to the database
                 await _passwordRecoveryRequestRepository.CreateOrUpdatePasswordRecoveryRequest(passwordRecoveryRequest);
 
                 var recoveryLink = $"{_recoveryLinkBaseUrl}?token={token}";
 
-                // Send the recovery link via email
+                string emailBody = await LoadAndFormatEmailTemplate(recoveryLink);
+
                 await _emailService.SendEmailAsync(new EmailRequestDTO
                 {
-                    Body = recoveryLink,
+                    Body = emailBody,
                     Subject = "Password Recovery",
                     To = email
                 });
 
-                _logger.LogInformation($"Password recovery link for {email}: {recoveryLink}");
+                _logger.LogInformation("Password recovery link sent to {Email}", email);
 
                 return true;
             }
@@ -129,6 +103,37 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
+        private async Task<string> LoadAndFormatEmailTemplate(string recoveryLink)
+        {
+            try
+            {
+                string templatePath;
+                if (Path.IsPathRooted(_emailTemplatePath))
+                {
+                    templatePath = _emailTemplatePath;
+                }
+                else
+                {
+                    templatePath = Path.Combine(_webHostEnvironment.ContentRootPath, _emailTemplatePath.TrimStart('~').TrimStart('/'));
+                }
+
+                _logger.LogInformation("Attempting to load email template from: {TemplatePath}", templatePath);
+
+                if (!File.Exists(templatePath))
+                {
+                    _logger.LogError("Email template file not found at {TemplatePath}", templatePath);
+                    throw new FileNotFoundException($"Email template file not found at {templatePath}");
+                }
+
+                var templateContent = await File.ReadAllTextAsync(templatePath);
+                return templateContent.Replace("{reset_link}", recoveryLink);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading or formatting email template");
+                throw;
+            }
+        }
         public async Task<bool> ValidateToken(string token)
         {
             try
@@ -148,6 +153,41 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
+        public async Task<bool> ResetPassword(string token, string newPassword)
+        {
+            try
+            {
+                var recoveryRequest = await _passwordRecoveryRequestRepository.GetPasswordRecoveryRequestByToken(token);
+                if (recoveryRequest == null)
+                {
+                    _logger.LogWarning("Invalid or expired token: {Token}", token);
+                    return false;
+                }
+
+                var user = await _userRepository.GetUser(recoveryRequest.UserId);
+                if (user == null)
+                {
+                    _logger.LogError("User not found for ID: {UserId}", recoveryRequest.UserId);
+                    return false;
+                }
+
+                user.Password = HashPassword(newPassword);
+
+                await _userRepository.UpdateUser(user);
+
+                await _passwordRecoveryRequestRepository.InvalidateToken(token);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting password for token: {Token}", token);
+                return false;
+            }
+        }
+
+      
+
         private string GenerateEncryptedToken()
         {
             var guid = Guid.NewGuid().ToString();
@@ -155,23 +195,13 @@ namespace DDEyC_API.DataAccess.Services
             {
                 var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(guid));
                 var base64String = Convert.ToBase64String(hashedBytes);
-
-                // Use Base64UrlEncoder to make the string URL-safe
                 return Base64UrlEncoder.Encode(base64String);
             }
         }
 
-        // Method updated to use BCrypt instead of SHA-256
         private string HashPassword(string password)
         {
-            // Use BCrypt to hash the password
             return BCrypt.Net.BCrypt.HashPassword(password);
-        }
-
-        // Optional method to verify passwords if needed
-        public bool VerifyPassword(string enteredPassword, string hashedPassword)
-        {
-            return BCrypt.Net.BCrypt.Verify(enteredPassword, hashedPassword);
         }
     }
 }
