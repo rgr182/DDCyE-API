@@ -18,20 +18,20 @@ steps:
 - task: DotNetCoreCLI@2
   inputs:
     command: 'restore'
-    projects: '"$(Build.SourcesDirectory)/DDEyC API/DDEyC_API.csproj"'  # Ruta completa al proyecto con comillas dobles
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Ruta actualizada sin comillas dobles
 
 # Compilar solo el proyecto DDEyC_API
 - task: DotNetCoreCLI@2
   inputs:
     command: 'build'
-    projects: '"$(Build.SourcesDirectory)/DDEyC API/DDEyC_API.csproj"'  # Ruta completa al proyecto con comillas dobles
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Ruta actualizada sin comillas dobles
     arguments: '--configuration Release'
 
 # Publicar solo el proyecto DDEyC_API en un directorio temporal para desplegar
 - task: DotNetCoreCLI@2
   inputs:
     command: 'publish'
-    projects: '"$(Build.SourcesDirectory)/DDEyC API/DDEyC_API.csproj"'  # Ruta completa al proyecto con comillas dobles
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Ruta actualizada sin comillas dobles
     publishWebProjects: true
     arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
     zipAfterPublish: true
