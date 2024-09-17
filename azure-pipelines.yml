@@ -36,19 +36,19 @@ steps:
     arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
     zipAfterPublish: true
 
-# Copiar los archivos al servidor remoto usando SSH
+# Copiar los archivos al servidor remoto usando SSH (modificado para Windows/IIS)
 - task: CopyFilesOverSSH@0
   inputs:
-    sshEndpoint: 'SSH_Connection'  # Nombre del servicio de conexión SSH configurado en DevOps
+    sshEndpoint: 'SSH Devops'  # Cambiado al nuevo servicio SSH en Azure DevOps
     sourceFolder: '$(Build.ArtifactStagingDirectory)'  # Directorio donde se publicaron los archivos
-    targetFolder: '/var/www/app'  # Ruta en el servidor remoto (ajústalo según tu entorno)
+    targetFolder: 'C:/inetpub/WebAPI'  # Ruta en el servidor remoto para IIS
     cleanTargetFolder: false
 
-# Ejecutar comandos SSH en el servidor remoto (opcional)
+# Ejecutar comandos SSH en el servidor remoto para reiniciar IIS
 - task: SSH@0
   inputs:
-    sshEndpoint: 'SSH_Connection'  # Nombre del servicio de conexión SSH configurado en DevOps
+    sshEndpoint: 'SSH Devops'  # Cambiado al nuevo servicio SSH en Azure DevOps
     runOptions: 'inline'
     inline: |
-      sudo systemctl restart apache2  # Reemplaza según el servidor (por ejemplo, IIS en Windows o Apache en Linux)
+      iisreset  # Comando para reiniciar IIS en el servidor Windows
     failOnStdErr: true
