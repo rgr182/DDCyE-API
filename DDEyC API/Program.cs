@@ -4,6 +4,7 @@ using DDEyC_API.DataAccess.Services;
 using DDEyC_Auth.Infraestructure;
 using DDEyC_Auth.Utils;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -83,6 +84,14 @@ app.UseHttpsRedirection();
 
 // Use static files for MVC views
 app.UseStaticFiles();
+
+// add the file Assets
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "Assets")),
+    RequestPath = "/Assets"
+});
 
 // Correct order: Routing first, then CORS, then Authentication and Authorization
 app.UseRouting();

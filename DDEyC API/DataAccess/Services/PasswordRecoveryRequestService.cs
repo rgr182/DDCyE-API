@@ -38,7 +38,6 @@ namespace DDEyC_API.DataAccess.Services
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
 
-            // Load values from configuration (appsettings.json)
             _recoveryLinkBaseUrl = _configuration["PasswordRecovery:RecoveryLinkBaseUrl"] ?? throw new ArgumentNullException("RecoveryLinkBaseUrl not found in configuration.");
             _tokenValidityMinutes = int.Parse(_configuration["PasswordRecovery:TokenValidityMinutes"] ?? throw new ArgumentNullException("TokenValidityMinutes not found in configuration."));
         }
@@ -63,7 +62,7 @@ namespace DDEyC_API.DataAccess.Services
                     return false;
                 }
 
-                // Hash the new password
+                // Encrypt the new password using BCrypt
                 user.Password = HashPassword(newPassword);
 
                 // Update the user's password in the database
@@ -95,8 +94,6 @@ namespace DDEyC_API.DataAccess.Services
 
                 // Generate a recovery token
                 var token = GenerateEncryptedToken();
-
-                // Get the user by email
                 var user = await _userRepository.GetUserByEmail(email);
 
                 // Create a new password recovery request
@@ -113,13 +110,14 @@ namespace DDEyC_API.DataAccess.Services
 
                 var recoveryLink = $"{_recoveryLinkBaseUrl}?token={token}";
 
+                // Send the recovery link via email
                 await _emailService.SendEmailAsync(new EmailRequestDTO
                 {
                     Body = recoveryLink,
-                    Subject = "Recuperar Contraseña",
+                    Subject = "Password Recovery",
                     To = email
-                });           
-                
+                });
+
                 _logger.LogInformation($"Password recovery link for {email}: {recoveryLink}");
 
                 return true;
@@ -158,19 +156,22 @@ namespace DDEyC_API.DataAccess.Services
                 var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(guid));
                 var base64String = Convert.ToBase64String(hashedBytes);
 
-                // Use the custom Base64UrlEncoder to make the string URL-safe.
+                // Use Base64UrlEncoder to make the string URL-safe
                 return Base64UrlEncoder.Encode(base64String);
             }
         }
 
-
+        // Method updated to use BCrypt instead of SHA-256
         private string HashPassword(string password)
         {
-            using (var sha256 = SHA256.Create())
-            {
-                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-                return Convert.ToBase64String(hashedBytes);
-            }
+            // Use BCrypt to hash the password
+            return BCrypt.Net.BCrypt.HashPassword(password);
+        }
+
+        // Optional method to verify passwords if needed
+        public bool VerifyPassword(string enteredPassword, string hashedPassword)
+        {
+            return BCrypt.Net.BCrypt.Verify(enteredPassword, hashedPassword);
         }
     }
 }

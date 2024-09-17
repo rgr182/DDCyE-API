@@ -1,4 +1,4 @@
-﻿using DDEyC_API.DataAccess.Context;
+using DDEyC_API.DataAccess.Context;
 using DDEyC_Auth.DataAccess.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,8 +7,8 @@ namespace DDEyC_API.DataAccess.Repositories
     public interface IPasswordRecoveryRequestRepository
     {
         Task<PasswordRecoveryRequest> CreateOrUpdatePasswordRecoveryRequest(PasswordRecoveryRequest passwordRecoveryRequest);
-        Task<PasswordRecoveryRequest?> GetPasswordRecoveryRequestByToken(string token);  // Buscar por token
-        Task InvalidateToken(string token);  // Invalidar el token
+        Task<PasswordRecoveryRequest?> GetPasswordRecoveryRequestByToken(string token);  // Search by token
+        Task InvalidateToken(string token);  // Invalidate the token
     }
 
     public class PasswordRecoveryRequestRepository : IPasswordRecoveryRequestRepository
@@ -22,18 +22,18 @@ namespace DDEyC_API.DataAccess.Repositories
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        // Crear o actualizar la solicitud de recuperación de contraseña
+        // Create or update a password recovery request
         public async Task<PasswordRecoveryRequest> CreateOrUpdatePasswordRecoveryRequest(PasswordRecoveryRequest passwordRecoveryRequest)
         {
             try
             {
-                // Verificar si ya existe una solicitud de recuperación de contraseña para el usuario
+                // Check if there is already a password recovery request for the user
                 var existingRequest = await _authContext.PasswordRecoveryRequest
                     .FirstOrDefaultAsync(r => r.UserId == passwordRecoveryRequest.UserId);
 
                 if (existingRequest != null)
                 {
-                    // Actualizar el registro existente con los nuevos valores
+                    // Update the existing record with the new values
                     existingRequest.Token = passwordRecoveryRequest.Token;
                     existingRequest.ExpirationTime = passwordRecoveryRequest.ExpirationTime;
                     existingRequest.Email = passwordRecoveryRequest.Email;
@@ -42,7 +42,7 @@ namespace DDEyC_API.DataAccess.Repositories
                 }
                 else
                 {
-                    // Si no existe un registro para el usuario, crear uno nuevo
+                    // If there is no record for the user, create a new one
                     await _authContext.PasswordRecoveryRequest.AddAsync(passwordRecoveryRequest);
                 }
 
@@ -58,7 +58,7 @@ namespace DDEyC_API.DataAccess.Repositories
             }
         }
 
-        // Obtener la solicitud de recuperación por token
+        // Retrieve the password recovery request by token
         public async Task<PasswordRecoveryRequest?> GetPasswordRecoveryRequestByToken(string token)
         {
             try
@@ -73,7 +73,7 @@ namespace DDEyC_API.DataAccess.Repositories
             }
         }
 
-        // Invalidar el token al actualizar la fecha de expiración
+        // Invalidate the token by updating the expiration date
         public async Task InvalidateToken(string token)
         {
             try
@@ -83,7 +83,7 @@ namespace DDEyC_API.DataAccess.Repositories
 
                 if (request != null)
                 {
-                    request.ExpirationTime = DateTime.UtcNow; // Invalidar el token
+                    request.ExpirationTime = DateTime.UtcNow; // Invalidate the token
                     await _authContext.SaveChangesAsync();
                 }
             }

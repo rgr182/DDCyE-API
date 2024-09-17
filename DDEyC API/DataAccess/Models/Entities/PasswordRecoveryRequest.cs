@@ -13,7 +13,7 @@ namespace DDEyC_Auth.DataAccess.Models.Entities
         public DateTime ExpirationTime { get; set; }
         public int UserId { get; set; }
 
-        // Propiedad para el tiempo de validez del token
-        public static int TokenValidityMinutes { get; set; } = 30;  // Valor por defecto de 30 minutos
+        // Property for token validity time
+        public static int TokenValidityMinutes { get; set; } = 30;  
     }
 }
