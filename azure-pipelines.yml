@@ -4,51 +4,51 @@ trigger:
       - main
 
 pool:
-  name: 'Self-Hosted Pool'  # Nombre del pool que creaste para el agente autohospedado
+  name: 'Self-Hosted Pool'  # Name of the pool for the self-hosted agent
 
 steps:
-# Instalar el SDK de .NET Core
+# Install .NET Core SDK
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
     version: '8.x'
     installationPath: $(Agent.ToolsDirectory)/dotnet
 
-# Restaurar dependencias solo para el proyecto DDEyC_API
+# Restore dependencies for the DDEyC_API project only
 - task: DotNetCoreCLI@2
   inputs:
     command: 'restore'
-    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Ruta actualizada sin comillas dobles
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Updated path without double quotes
 
-# Compilar solo el proyecto DDEyC_API
+# Build the DDEyC_API project only
 - task: DotNetCoreCLI@2
   inputs:
     command: 'build'
-    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Ruta actualizada sin comillas dobles
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Updated path without double quotes
     arguments: '--configuration Release'
 
-# Publicar solo el proyecto DDEyC_API en un directorio temporal para desplegar
+# Publish the DDEyC_API project to a temporary directory for deployment
 - task: DotNetCoreCLI@2
   inputs:
     command: 'publish'
-    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Ruta actualizada sin comillas dobles
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Updated path without double quotes
     publishWebProjects: true
     arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
     zipAfterPublish: true
 
-# Copiar los archivos al servidor remoto usando SSH
+# Copy the published files to the remote server using SSH
 - task: CopyFilesOverSSH@0
   inputs:
-    sshEndpoint: 'SSH Devops'  # Cambiado al nuevo servicio SSH en Azure DevOps
-    sourceFolder: '$(Build.ArtifactStagingDirectory)'  # Directorio donde se publicaron los archivos
-    targetFolder: 'C:/inetpub/WebAPI'  # Ruta en el servidor remoto para IIS
+    sshEndpoint: 'SSH Devops'  # Updated to the new SSH service in Azure DevOps
+    sourceFolder: '$(Build.ArtifactStagingDirectory)'  # Directory where the files were published
+    targetFolder: 'C:/inetpub/WebAPI'  # Target directory on the remote IIS server
     cleanTargetFolder: false
 
-# Ejecutar comandos SSH en el servidor remoto para reiniciar IIS
+# Execute SSH commands on the remote server to restart IIS
 - task: SSH@0
   inputs:
-    sshEndpoint: 'SSH Devops'  # Cambiado al nuevo servicio SSH en Azure DevOps
+    sshEndpoint: 'SSH Devops'  # Updated to the new SSH service in Azure DevOps
     runOptions: 'inline'
     inline: |
-      iisreset  # Comando para reiniciar IIS en el servidor Windows
+      iisreset  # Command to restart IIS on the Windows server
     failOnStdErr: true
