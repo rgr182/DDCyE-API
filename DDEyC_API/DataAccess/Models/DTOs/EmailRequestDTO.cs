@@ -9,6 +9,4 @@ namespace DDEyC_API.DataAccess.Models.DTOs
         public string Body { get; set; }
         public List<EmailAttachment> Attachments { get; set; } = new List<EmailAttachment>();
     }
-
-   
 }
