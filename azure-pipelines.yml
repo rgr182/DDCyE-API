@@ -14,24 +14,24 @@ steps:
     version: '8.x'
     installationPath: $(Agent.ToolsDirectory)/dotnet
 
-# Restaurar dependencias solo para el proyecto DDEyC API
+# Restaurar dependencias solo para el proyecto DDEyC-API
 - task: DotNetCoreCLI@2
   inputs:
     command: 'restore'
-    projects: '**/DDEyC API.csproj'  # Asegúrate de que la ruta coincida con tu archivo .csproj específico de DDEyC API
+    projects: '**/DDEyC-API.csproj'  # Nueva ruta al archivo .csproj con el nombre cambiado
 
-# Compilar solo el proyecto DDEyC API
+# Compilar solo el proyecto DDEyC-API
 - task: DotNetCoreCLI@2
   inputs:
     command: 'build'
-    projects: '**/DDEyC API.csproj'  # Asegúrate de que la ruta coincida con tu archivo .csproj específico de DDEyC API
+    projects: '**/DDEyC-API.csproj'  # Nueva ruta al archivo .csproj con el nombre cambiado
     arguments: '--configuration Release'
 
-# Publicar solo el proyecto DDEyC API en un directorio temporal para desplegar
+# Publicar solo el proyecto DDEyC-API en un directorio temporal para desplegar
 - task: DotNetCoreCLI@2
   inputs:
     command: 'publish'
-    projects: '**/DDEyC API.csproj'  # Asegúrate de que la ruta coincida con tu archivo .csproj específico de DDEyC API
+    projects: '**/DDEyC-API.csproj'  # Nueva ruta al archivo .csproj con el nombre cambiado
     publishWebProjects: true
     arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
     zipAfterPublish: true
