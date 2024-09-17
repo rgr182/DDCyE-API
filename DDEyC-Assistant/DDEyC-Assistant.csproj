@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DDEyC API\DDEyC-API.csproj" />
+    <ProjectReference Include="..\DDEyC API\DDEyC_API.csproj" />
   </ItemGroup>
 
   <Target Name="CopyAppSettingsAfterPublish" AfterTargets="Publish">
