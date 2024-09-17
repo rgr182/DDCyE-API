@@ -1,6 +1,7 @@
 ﻿using DDEyC_API.DataAccess.Models.DTOs;
 using System.Net.Mail;
 using System.Net;
+using System.Net.Mime;
 
 namespace DDEyC_API.DataAccess.Services
 {
@@ -14,19 +15,20 @@ namespace DDEyC_API.DataAccess.Services
         private readonly string _smtpClient;
         private readonly string _smtpEmail;
         private readonly string _smtpPassword;
+        private readonly ILogger<EmailService> _logger;
 
-        public EmailService(IConfiguration configuration)
+        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
         {
             _smtpClient = configuration["SmtpSettings:SMTPClient"];
             _smtpEmail = configuration["SmtpSettings:Email"];
             _smtpPassword = configuration["SmtpSettings:Password"];
+            _logger = logger;
         }
 
         public async Task<bool> SendEmailAsync(EmailRequestDTO request)
         {
             try
             {
-                // Crear un nuevo cliente SMTP
                 var smtpClient = new SmtpClient(_smtpClient)
                 {
                     Port = 587,
@@ -36,7 +38,6 @@ namespace DDEyC_API.DataAccess.Services
                     UseDefaultCredentials = false
                 };
 
-                // Crear un nuevo mensaje de correo
                 var mailMessage = new MailMessage
                 {
                     From = new MailAddress(_smtpEmail),
@@ -45,17 +46,25 @@ namespace DDEyC_API.DataAccess.Services
                     IsBodyHtml = true,
                 };
 
-                // Agregar el destinatario al mensaje de correo
                 mailMessage.To.Add(request.To);
 
-                // Enviar el correo de forma asíncrona
+                foreach (var attachment in request.Attachments)
+                {
+                    var linkedResource = new LinkedResource(new MemoryStream(attachment.Content), attachment.MimeType)
+                    {
+                        ContentId = attachment.ContentId
+                    };
+                    var view = AlternateView.CreateAlternateViewFromString(mailMessage.Body, null, MediaTypeNames.Text.Html);
+                    view.LinkedResources.Add(linkedResource);
+                    mailMessage.AlternateViews.Add(view);
+                }
+
                 await smtpClient.SendMailAsync(mailMessage);
                 return true;
             }
             catch (Exception ex)
             {
-                // Registrar la excepción
-                Console.WriteLine($"Error al enviar el correo: {ex.Message}");
+                _logger.LogError(ex, "Error sending email");
                 return false;
             }
         }
