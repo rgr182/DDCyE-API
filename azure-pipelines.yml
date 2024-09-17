@@ -18,20 +18,20 @@ steps:
 - task: DotNetCoreCLI@2
   inputs:
     command: 'restore'
-    projects: 'DDEyC API/DDEyC API.csproj'  # Ruta al archivo .csproj del proyecto DDEyC API
+    projects: '**/DDEyC API.csproj'  # Asegúrate de que la ruta coincida con tu archivo .csproj específico de DDEyC API
 
 # Compilar solo el proyecto DDEyC API
 - task: DotNetCoreCLI@2
   inputs:
     command: 'build'
-    projects: 'DDEyC API/DDEyC API.csproj'  # Ruta al archivo .csproj del proyecto DDEyC API
+    projects: '**/DDEyC API.csproj'  # Asegúrate de que la ruta coincida con tu archivo .csproj específico de DDEyC API
     arguments: '--configuration Release'
 
 # Publicar solo el proyecto DDEyC API en un directorio temporal para desplegar
 - task: DotNetCoreCLI@2
   inputs:
     command: 'publish'
-    projects: 'DDEyC API/DDEyC API.csproj'  # Ruta al archivo .csproj del proyecto DDEyC API
+    projects: '**/DDEyC API.csproj'  # Asegúrate de que la ruta coincida con tu archivo .csproj específico de DDEyC API
     publishWebProjects: true
     arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
     zipAfterPublish: true
