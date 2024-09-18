@@ -1,0 +1,112 @@
+﻿@namespace DDEyC_API.Views.Auth
+@{
+    ViewData["Title"] = "RegisterView";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- jQuery CDN -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link href="~/Assets/css/RegisterView.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="w-100 d-flex flex-column justify-content-center align-items-center">
+        <div class="initialContent w-100">
+            @await Html.PartialAsync("HeaderPartial")
+        </div>
+        <div class="mainTitle d-flex flex-column justify-content-center align-items-center w-100">
+            <h1 class="fw-bold display-3 text-white">Registrate</h1>
+            <p class="fw-bold text-white">Es rápido y sencillo.</p>
+        </div>
+        <div class="d-flex flex-column justify-content-center align-items-center w-75 p-2">
+            <div class="d-flex justify-content-between align-items-center w-100">
+                <input class="UserInfo mt-2 mb-2" type="text" name="firstName" value="" placeholder="Nombre" />
+                <input class="UserInfo mt-2 mb-2" type="text" name="lastName" value="" placeholder="Apellido" />
+            </div>
+            <div class="d-flex flex-column justify-content-center align-items-center w-100">
+                <input class="w-100 mt-2 mb-2" type="email" name="email" placeholder="Correo electrónico" />
+                <input class="w-100 mt-2 mb-2" type="password" name="password" placeholder="Contraseña Nueva" />
+                <input class="w-100 mt-2 mb-2" type="password" name="confirmPassword" placeholder="Confirmar contraseña" />
+            </div>
+        </div>
+        <div class="d-flex flex-column justify-content-center align-items-center w-75 mt-2 mb-2">
+            <p class="fw-bold">Para proteger tu cuenta, elige una contraseña segura que combine letras mayúsculas y minúsculas, números y simbolos. Esto hará que sea más dificil de adivinar y mucho más segura.</p>
+        </div>
+        <div class="w-75 d-flex flex-column mt-2 mb-2">
+            <h3>Fecha de nacimiento</h3>
+            <div class="w-100 d-flex justify-content-between">
+                <div class="w-100 dropdown d-inline-block">
+                    <button class="birthdayButton btn btn-secondary dropdown-toggle" type="button" id="dropdownDay" data-bs-toggle="dropdown" aria-expanded="false">
+                        Día
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownDay">
+                        <script>
+                            for (let i = 1; i <= 31; i++) {
+                                document.write(`<li><a class="dropdown-item" href="#" onclick="selectOption('dropdownDay', ${i})">${i}</a></li>`);
+                            }
+                        </script>
+                    </ul>
+                </div>
+                <div class="w-100 dropdown d-inline-block mx-2">
+                    <button class="birthdayButton btn btn-secondary dropdown-toggle" type="button" id="dropdownMonth" data-bs-toggle="dropdown" aria-expanded="false">
+                        Mes
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMonth">
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Enero')">Enero</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Febrero')">Febrero</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Marzo')">Marzo</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Abril')">Abril</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Mayo')">Mayo</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Junio')">Junio</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Julio')">Julio</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Agosto')">Agosto</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Septiembre')">Septiembre</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Octubre')">Octubre</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Noviembre')">Noviembre</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Diciembre')">Diciembre</a></li>
+                    </ul>
+                </div>
+                <div class="w-100 dropdown d-inline-block">
+                    <button class="birthdayButton btn btn-secondary dropdown-toggle" type="button" id="dropdownYear" data-bs-toggle="dropdown" aria-expanded="false">
+                        Año
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownYear">
+                        <script>
+                            const currentYear = new Date().getFullYear();
+                            for (let i = currentYear; i >= 1900; i--) {
+                                document.write(`<li><a class="dropdown-item" href="#" onclick="selectOption('dropdownYear', ${i})">${i}</a></li>`);
+                            }
+                        </script>
+                    </ul>
+                </div>
+                
+            </div>
+        </div>
+        <div class="w-75 d-flex flex-column mt-2 mb-2">
+            <h3>Genero</h3>
+            <div>
+                <button>Mujer</button>
+                <button>Hombre</button>
+                <button>Otro</button>
+            </div>
+        </div>
+        <div>
+            <button type="button" class="bg-primary fw-bold text-white border-0 rounded">Registrarme</button>
+            <button type="button" class="bg-primary fw-bold text-white border-0 rounded">Volver</button>
+        </div>
+    </div>
+    <script>
+        function selectOption(dropdownId, value) {
+            document.getElementById(dropdownId).textContent = value;
+        }
+    </script>
+    <!-- Bootstrap JS and Popper.js as normal HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

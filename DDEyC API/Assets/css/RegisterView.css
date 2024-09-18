@@ -1,0 +1,14 @@
+﻿body {
+}
+.mainTitle {
+    background-color: #007bff;
+    height: 115px;
+}
+.UserInfo {
+    width: 45%;
+    min-height: 50px;
+}
+.birthdayButton{
+    width:25%;
+    min-height:50px;
+}
