@@ -93,12 +93,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 // add the file Assets
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(Directory.GetCurrentDirectory(), "Assets")),
-    RequestPath = "/Assets"
-});
+
 
 // Correct order: Routing first, then CORS, then Authentication and Authorization
 app.UseRouting();

@@ -25,46 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Assets\images\" />
     <Folder Include="DataAccess\Domain\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Update="Templates\Emails\password-recovery.cshtml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+ 
 
-  <ItemGroup>
-    <None Update="Assets\css\headerStyles.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Assets\css\PasswordRecovery.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Assets\css\PasswordReset.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Assets\images\chihuahua_capital.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Assets\images\idea_logo_001.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Assets\images\logo-capital.webp">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Assets\images\logo-idea-azul.webp">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Assets\images\LOGOTIPO 2024 2027 GOB MPAL.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Assets\images\LOGOTIPO GOB MPAL.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Templates\Emails\Styles\password-recovery.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 </Project>
