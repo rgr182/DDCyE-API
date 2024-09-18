@@ -4,6 +4,7 @@ using DDEyC_Auth.DataAccess.Models.Entities;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
+using PreMailer.Net;
 
 namespace DDEyC_API.DataAccess.Services
 {
@@ -27,6 +28,7 @@ namespace DDEyC_API.DataAccess.Services
         private readonly string _recoveryLinkBaseUrl;
         private readonly int _tokenValidityMinutes;
         private readonly string _emailTemplatePath;
+        private readonly string _emailCssPath;
         private readonly Dictionary<string, string> _imagePathsConfig;
 
         public PasswordRecoveryRequestService(
@@ -49,6 +51,7 @@ namespace DDEyC_API.DataAccess.Services
             _recoveryLinkBaseUrl = _configuration["PasswordRecovery:RecoveryLinkBaseUrl"];
             _tokenValidityMinutes = int.Parse(_configuration["PasswordRecovery:TokenValidityMinutes"]);
             _emailTemplatePath = _configuration["PasswordRecovery:EmailTemplatePath"];
+            _emailCssPath = _configuration["PasswordRecovery:EmailCssPath"];
             _imagePathsConfig = _configuration.GetSection("PasswordRecovery:EmailTemplateImagePaths").Get<Dictionary<string, string>>();
         }
 
@@ -158,8 +161,10 @@ namespace DDEyC_API.DataAccess.Services
             try
             {
                 string templatePath = ResolveTemplatePath();
+                string cssPath = ResolveCssPath();
 
                 _logger.LogInformation("Attempting to load email template from: {TemplatePath}", templatePath);
+                _logger.LogInformation("Attempting to load CSS from: {CssPath}", cssPath);
 
                 if (!File.Exists(templatePath))
                 {
@@ -167,8 +172,25 @@ namespace DDEyC_API.DataAccess.Services
                     throw new FileNotFoundException($"Email template file not found at {templatePath}");
                 }
 
+                if (!File.Exists(cssPath))
+                {
+                    _logger.LogError("CSS file not found at {CssPath}", cssPath);
+                    throw new FileNotFoundException($"CSS file not found at {cssPath}");
+                }
+
                 var templateContent = await File.ReadAllTextAsync(templatePath);
-                return templateContent.Replace("{reset_link}", recoveryLink);
+                var cssContent = await File.ReadAllTextAsync(cssPath);
+
+                // Replace the placeholder with the actual recovery link
+                templateContent = templateContent.Replace("{reset_link}", recoveryLink);
+
+                // Add the CSS to the template
+                templateContent = templateContent.Replace("/* Styles will be inlined at runtime */", cssContent);
+
+                // Use PreMailer.Net to inline the styles
+                var result = PreMailer.Net.PreMailer.MoveCssInline(templateContent);
+
+                return result.Html;
             }
             catch (Exception ex)
             {
@@ -193,6 +215,22 @@ namespace DDEyC_API.DataAccess.Services
 
             // If both are null, fall back to IHostEnvironment
             return Path.Combine(_hostEnvironment.ContentRootPath, _emailTemplatePath.TrimStart('~').TrimStart('/'));
+        }
+
+        private string ResolveCssPath()
+        {
+            // Similar to ResolveTemplatePath, but for the CSS file
+            if (!string.IsNullOrEmpty(_webHostEnvironment.WebRootPath))
+            {
+                return Path.Combine(_webHostEnvironment.WebRootPath, _emailCssPath.TrimStart('~').TrimStart('/'));
+            }
+
+            if (!string.IsNullOrEmpty(_webHostEnvironment.ContentRootPath))
+            {
+                return Path.Combine(_webHostEnvironment.ContentRootPath, _emailCssPath.TrimStart('~').TrimStart('/'));
+            }
+
+            return Path.Combine(_hostEnvironment.ContentRootPath, _emailCssPath.TrimStart('~').TrimStart('/'));
         }
 
         private async Task<List<EmailAttachment>> GetEmailAttachments()
