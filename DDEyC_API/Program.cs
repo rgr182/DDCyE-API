@@ -8,6 +8,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.FileProviders; 
 using System.IO;
+using Microsoft.AspNetCore.Mvc.Razor;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -15,6 +16,10 @@ var configuration = builder.Configuration;
 // Add services to the container, including controllers with views (for Razor)
 builder.Services.AddControllersWithViews();  
 
+builder.Services.Configure<RazorViewEngineOptions>(options =>
+{
+    options.ViewLocationFormats.Add("/Templates/Emails/{0}" + RazorViewEngine.ViewExtension);
+});
 // Add CORS configuration to allow any origin, method, and header
 builder.Services.AddCors(options =>
 {
