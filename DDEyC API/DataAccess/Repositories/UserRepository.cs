@@ -72,6 +72,7 @@ namespace DDEyC_API.DataAccess.Repositories
         {
             try
             {
+                _logger.LogInformation(email);
                 return await _authContext.Users.FirstOrDefaultAsync(u => u.Email == email);
             }
             catch (Exception ex)

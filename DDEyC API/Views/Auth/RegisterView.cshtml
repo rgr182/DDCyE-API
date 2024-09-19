@@ -23,6 +23,7 @@
             <h1 class="fw-bold display-3 text-white">Registrate</h1>
             <p class="fw-bold text-white">Es rápido y sencillo.</p>
         </div>
+        @* required info *@
         <div class="d-flex flex-column justify-content-center align-items-center w-75">
             <div class="d-flex justify-content-between align-items-center w-100">
                 <input id="name" class="UserInfo mt-2 mb-2" type="text" placeholder="Nombre" required />
@@ -37,58 +38,53 @@
         <div class="d-flex flex-column justify-content-center align-items-center w-75">
             <p class="adviceText fw-bold text-center">Para proteger tu cuenta, elige una contraseña segura que combine letras mayúsculas y minúsculas, números y simbolos. Esto hará que sea más dificil de adivinar y mucho más segura.</p>
         </div>
+        @* birthDate *@
         <div class="w-75 d-flex flex-column mt-2 mb-2">
             <h3>Fecha de nacimiento</h3>
             <div class="w-100 d-flex justify-content-between">
                 <div class="w-100 dropdown dropup d-inline-block">
                     <button class="birthdayButton btn dropdown-toggle d-flex justify-content-between align-items-center" type="button" id="dropdownDay" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span>
-                            Día
-                        </span>
+                        <span id="dayDisplay">Día</span>
                         <span class="dropdown-arrow"></span>
                     </button>
                     <ul id="dayOptions" class="dropdown-menu" aria-labelledby="dropdownDay">
                         <script>
                             for (let i = 1; i <= 31; i++) {
-                                document.write(`<li><a class="dropdown-item" href="#" onclick="selectOption('dropdownDay', ${i})">${i}</a></li>`);
+                                document.write(`<li><a class="dropdown-item" href="#" onclick="selectOption('dayDisplay', ${i})">${i}</a></li>`);
                             }
                         </script>
                     </ul>
                 </div>
                 <div class="w-100 dropdown dropup d-inline-block mx-2">
                     <button class="birthdayButton btn dropdown-toggle d-flex justify-content-between align-items-center" type="button" id="dropdownMonth" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span>
-                            Mes
-                        </span>
+                        <span id="monthDisplay">Mes</span>
                         <span class="dropdown-arrow"></span>
                     </button>
                     <ul id="monthOptions" class="dropdown-menu" aria-labelledby="dropdownMonth">
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Enero')">Enero</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Febrero')">Febrero</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Marzo')">Marzo</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Abril')">Abril</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Mayo')">Mayo</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Junio')">Junio</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Julio')">Julio</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Agosto')">Agosto</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Septiembre')">Septiembre</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Octubre')">Octubre</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Noviembre')">Noviembre</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('dropdownMonth', 'Diciembre')">Diciembre</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Enero')">Enero</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Febrero')">Febrero</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Marzo')">Marzo</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Abril')">Abril</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Mayo')">Mayo</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Junio')">Junio</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Julio')">Julio</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Agosto')">Agosto</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Septiembre')">Septiembre</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Octubre')">Octubre</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Noviembre')">Noviembre</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Diciembre')">Diciembre</a></li>
                     </ul>
                 </div>
                 <div class="w-100 dropdown dropup d-inline-block">
                     <button class="birthdayButton btn dropdown-toggle d-flex justify-content-between align-items-center" type="button" id="dropdownYear" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span>
-                            Año
-                        </span>
+                        <span id="yearDisplay">Año</span>
                         <span class="dropdown-arrow"></span>
                     </button>
                     <ul id="yearOptions" class="dropdown-menu" aria-labelledby="dropdownYear">
                         <script>
                             const currentYear = new Date().getFullYear();
                             for (let i = currentYear; i >= 1900; i--) {
-                                document.write(`<li><a class="dropdown-item" href="#" onclick="selectOption('dropdownYear', ${i})">${i}</a></li>`);
+                                document.write(`<li><a class="dropdown-item" href="#" onclick="selectOption('yearDisplay', ${i})">${i}</a></li>`);
                             }
                         </script>
                     </ul>
@@ -119,6 +115,30 @@
         </div>
     </div>
     <script>
+        // guardar los valores de la fecha de nacimiento
+        var selectedDay = "";
+        var selectedMonth = "";
+        var selectedYear = "";
+
+        function selectDateOption(elementId, value) {
+            document.getElementById(elementId).textContent = value;
+            if (elementId === "dayDisplay") {
+                selectedDay = value;
+            } else if (elementId === "monthDisplay") {
+                selectedMonth = value;
+            } else if (elementId === "yearDisplay") {
+                selectedYear = value;
+            }
+        }
+    </script>
+    <script>
+        // show different values in dropdowns
+        function selectGeneralOption(dropdownId, value) {
+            document.getElementById(dropdownId).textContent = value;
+        }
+    </script>
+    <script>
+        var selectedGender = "";
         function selectGender(selectedButton) {
             // Remove 'selected' class of all buttons called 'gender' class.
             var buttons = document.querySelectorAll('.gender');
@@ -128,14 +148,11 @@
 
             // add 'selected' class to clicked button
             selectedButton.classList.add('selected');
+            // Guardar el género seleccionado en la variable global
+            selectedGender = selectedButton.textContent;
         }
     </script>
-    <script>
-        // show different values in dropdowns
-        function selectOption(dropdownId, value) {
-            document.getElementById(dropdownId).textContent = value;
-        }
-    </script>
+
     <script>
         var timeOutMessage = setTimeout(() => {
             $('#errorMessage').hide();
@@ -143,8 +160,9 @@
         // Script to send data with jQuery
         $(document).ready(() => {
             $(".RegisterButton").on("click", function ()  {
+                console.log("funciona?");
                 var name = $("#name").val();
-                var lastName = $("lastName").val();
+                var lastName = $("#lastName").val();
                 var email = $('#email').val();
                 var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
                 var newPassword = $('#Password').val();
@@ -187,18 +205,39 @@
                     return;
                 }
 
+                // Función para convertir el nombre del mes a su número correspondiente
+                function getMonthNumber(monthName) {
+                    const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                    return (months.indexOf(monthName) + 1).toString().padStart(2, '0'); // Retorna el número del mes con dos dígitos
+                }
+
+                // Formatear la fecha en formato "YYYY-MM-DD"
+                let monthNumber = getMonthNumber(selectedMonth);
+                let birthDate = `${selectedYear}-${monthNumber}-${selectedDay.toString().padStart(1, '0')}`;
+
                 // Send the AJAX request to the backend
-                // $.ajax({
-                //     url:
-                //     type:
-                //     contentType:
-                //     data:
-                //     success: (response) => {
-                //         $("#successMessage").text("Registro realizado con éxito!").show();
-                //         $('#errorMessage').hide();
-                //     },
-                //     error:
-                // })
+                $.ajax({
+                    url: "/api/User/register",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        name: name,
+                        lastName: lastName,
+                        email: email,
+                        newPassword: newPassword,
+                        confirmPassword: confirmPassword,
+                        birthDate: birthDate, // format YYYY-MM-DD
+                        gender: selectedGender 
+                    }),
+                    success: (response) => {
+                        $("#successMessage").text("Registro realizado con éxito!").show();
+                        $('#errorMessage').hide();
+                    },
+                    error: function (xhr, status, error) {
+                        var errorMessage = xhr.responseJSON?.title || 'Error al hacer el registro de usuario';
+                        alert(errorMessage);
+                    }
+                });
             });
         });
     </script>

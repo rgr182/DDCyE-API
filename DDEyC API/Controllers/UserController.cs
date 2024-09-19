@@ -80,9 +80,15 @@ namespace DDEyC.Controllers
         {
             try
             {
+                _logger.LogInformation(request.Name);
+                _logger.LogInformation(request.LastName);
+                _logger.LogInformation(request.Email);
+                _logger.LogInformation(request.Password);
+                _logger.LogInformation(request.BirthDate.ToString());
+                _logger.LogInformation(request.Gender);
                 // Verify if the email is already registered
                 var emailVerificationResult = await _usersService.VerifyExistingEmail(request.Email);
-                if (emailVerificationResult == "Email already exists")
+                if (emailVerificationResult)
                 {
                     return BadRequest(new { message = "Registration failed", error = "Email already exists" });
                 }
