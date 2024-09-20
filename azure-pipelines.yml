@@ -39,16 +39,32 @@ steps:
 # Copy the published files to the remote server using SSH
 - task: CopyFilesOverSSH@0
   inputs:
-    sshEndpoint: 'SSH Devops'  # Your SSH service connection name in Azure DevOps
+    sshEndpoint: 'SSH Devops'
     sourceFolder: '$(Build.ArtifactStagingDirectory)'
     targetFolder: 'C:/inetpub/WebAPI'
     cleanTargetFolder: false
 
-# Execute SSH commands on the remote server to restart IIS
+# Execute SSH commands on the remote server to restart IIS (Option 1: Inline command)
 - task: SSH@0
   inputs:
-    sshEndpoint: 'SSH Devops'  # Your SSH service connection name in Azure DevOps
+    sshEndpoint: 'SSH Devops'
     runOptions: 'inline'
     inline: |
-      iisreset  # Command to restart IIS on the Windows server
-    failOnStdErr: true
+      powershell.exe -Command "iisreset"
+
+# Alternative: Execute SSH commands on the remote server to restart IIS (Option 2: Using a script)
+# Uncomment this task and comment out the previous SSH task if you want to try this approach
+# - task: SSH@0
+#   inputs:
+#     sshEndpoint: 'SSH Devops'
+#     runOptions: 'script'
+#     scriptPath: '$(Build.SourcesDirectory)/restart-iis.ps1'
+
+# Install Git for Windows (which includes tr command)
+# Uncomment this task if you want to try installing Git for Windows
+# - task: PowerShell@2
+#   inputs:
+#     targetType: 'inline'
+#     script: |
+#       choco install git -y
+#       refreshenv
