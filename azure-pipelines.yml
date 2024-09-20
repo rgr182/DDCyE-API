@@ -4,24 +4,12 @@ trigger:
       - main
 
 pool:
-  name: 'Self-Hosted Pool'  # Name of the pool for the self-hosted agent
+  name: 'Self-Hosted Pool'
+
+variables:
+- group: DeploymentCredentials  # Links to the variable group you created
 
 steps:
-# Optionally install Git (which includes tr command) on the agent machine
-# Uncomment this task if you want to try installing Git
-- task: PowerShell@2
-  displayName: 'Install Git (includes tr command)'
-  inputs:
-    targetType: 'inline'
-    script: |
-      if (!(Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-Host "Git not found. Installing..."
-        choco install git -y
-        refreshenv
-      } else {
-        Write-Host "Git is already installed."
-      }
-
 # Install .NET Core SDK
 - task: UseDotNet@2
   inputs:
@@ -51,18 +39,62 @@ steps:
     arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
     zipAfterPublish: true
 
-# Copy the published files to the remote server using SSH
-- task: CopyFilesOverSSH@0
+# Copy the published files to the remote server using PowerShell
+- task: PowerShell@2
   inputs:
-    sshEndpoint: 'SSH Devops'
-    sourceFolder: '$(Build.ArtifactStagingDirectory)'
-    targetFolder: 'C:/inetpub/WebAPI'
-    cleanTargetFolder: false
+    targetType: 'inline'
+    script: |
+      $ErrorActionPreference = "Stop"
+      $source = "$(Build.ArtifactStagingDirectory)\*"
+      $destination = "\\158.222.102.253\C$\inetpub\WebAPI"
+      $username = "$(Username)"
+      $password = ConvertTo-SecureString "$(Password)" -AsPlainText -Force
+      $credential = New-Object System.Management.Automation.PSCredential($username, $password)
+      
+      try {
+        Write-Host "Creating PSDrive..."
+        New-PSDrive -Name RemoteServer -PSProvider FileSystem -Root $destination -Credential $credential -ErrorAction Stop
+        
+        Write-Host "Copying files..."
+        Copy-Item -Path $source -Destination "RemoteServer:" -Recurse -Force
+        
+        Write-Host "Files copied successfully."
+      }
+      catch {
+        Write-Error "An error occurred: $_"
+        throw
+      }
+      finally {
+        if (Get-PSDrive -Name RemoteServer -ErrorAction SilentlyContinue) {
+          Remove-PSDrive -Name RemoteServer
+          Write-Host "PSDrive removed."
+        }
+      }
 
-- task: SSH@0
+# Restart IIS on the remote server using PowerShell
+- task: PowerShell@2
   inputs:
-    sshEndpoint: 'SSH Devops'
-    runOptions: 'inline'
-    inline: |
-      powershell.exe -Command "& {Import-Module WebAdministration; iisreset}"
-    failOnStdErr: true
+    targetType: 'inline'
+    script: |
+      $ErrorActionPreference = "Stop"
+      $username = "$(Username)"
+      $password = ConvertTo-SecureString "$(Password)" -AsPlainText -Force
+      $credential = New-Object System.Management.Automation.PSCredential($username, $password)
+      
+      try {
+        Write-Host "Attempting to restart IIS..."
+        Invoke-Command -ComputerName "158.222.102.253" -ScriptBlock {
+          Import-Module WebAdministration
+          $result = iisreset
+          if ($LASTEXITCODE -ne 0) {
+            throw "IISReset failed with exit code $LASTEXITCODE. Output: $result"
+          }
+          Write-Host $result
+        } -Credential $credential -ErrorAction Stop
+        
+        Write-Host "IIS restarted successfully."
+      }
+      catch {
+        Write-Error "An error occurred while restarting IIS: $_"
+        throw
+      }
