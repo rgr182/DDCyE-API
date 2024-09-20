@@ -52,20 +52,39 @@ steps:
     targetType: 'inline'
     script: |
       $username = "$(Username)"
-      $password = ConvertTo-SecureString "$(Password)" -AsPlainText -Force
-      $credential = New-Object System.Management.Automation.PSCredential($username, $password)
+      $password = "$(Password)"
 
       Write-Host "Attempting to restart IIS using provided credentials..."
       try {
-        $result = Invoke-Command -ComputerName "localhost" -Credential $credential -ScriptBlock {
-          $output = iisreset
-          return $output
+        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $startInfo.FileName = "cmd.exe"
+        $startInfo.Arguments = "/c iisreset"
+        $startInfo.Domain = $env:COMPUTERNAME
+        $startInfo.UserName = $username
+        $startInfo.Password = ConvertTo-SecureString $password -AsPlainText -Force
+        $startInfo.UseShellExecute = $false
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $startInfo
+        $process.Start() | Out-Null
+        $output = $process.StandardOutput.ReadToEnd()
+        $error_output = $process.StandardError.ReadToEnd()
+        $process.WaitForExit()
+
+        Write-Host "Standard Output:"
+        Write-Host $output
+        
+        if ($error_output) {
+          Write-Host "Error Output:"
+          Write-Host $error_output
         }
-        Write-Host $result
-        if ($result -like "*Internet services successfully restarted*") {
+
+        if ($process.ExitCode -eq 0) {
           Write-Host "IIS restarted successfully."
         } else {
-          throw "IIS reset might have failed. Please check the output."
+          throw "IIS reset failed with exit code $($process.ExitCode)"
         }
       }
       catch {
