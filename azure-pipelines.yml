@@ -62,9 +62,9 @@ steps:
 
 # Install Git for Windows (which includes tr command)
 # Uncomment this task if you want to try installing Git for Windows
-# - task: PowerShell@2
-#   inputs:
-#     targetType: 'inline'
-#     script: |
-#       choco install git -y
-#       refreshenv
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      choco install git -y
+      refreshenv
