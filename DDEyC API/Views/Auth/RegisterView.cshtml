@@ -42,51 +42,31 @@
         <div class="w-75 d-flex flex-column mt-2 mb-2">
             <h3>Fecha de nacimiento</h3>
             <div class="w-100 d-flex justify-content-between">
-                <div class="w-100 dropdown dropup d-inline-block">
+                <div class="w-100 dropdown d-inline-block">
                     <button class="birthdayButton btn dropdown-toggle d-flex justify-content-between align-items-center" type="button" id="dropdownDay" data-bs-toggle="dropdown" aria-expanded="false">
                         <span id="dayDisplay">Día</span>
                         <span class="dropdown-arrow"></span>
                     </button>
                     <ul id="dayOptions" class="dropdown-menu" aria-labelledby="dropdownDay">
-                        <script>
-                            for (let i = 1; i <= 31; i++) {
-                                document.write(`<li><a class="dropdown-item" href="#" onclick="selectOption('dayDisplay', ${i})">${i}</a></li>`);
-                            }
-                        </script>
+                        <!-- Days will be populated by JavaScript -->
                     </ul>
                 </div>
-                <div class="w-100 dropdown dropup d-inline-block mx-2">
+                <div class="w-100 dropdown d-inline-block mx-2">
                     <button class="birthdayButton btn dropdown-toggle d-flex justify-content-between align-items-center" type="button" id="dropdownMonth" data-bs-toggle="dropdown" aria-expanded="false">
                         <span id="monthDisplay">Mes</span>
                         <span class="dropdown-arrow"></span>
                     </button>
                     <ul id="monthOptions" class="dropdown-menu" aria-labelledby="dropdownMonth">
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Enero')">Enero</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Febrero')">Febrero</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Marzo')">Marzo</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Abril')">Abril</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Mayo')">Mayo</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Junio')">Junio</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Julio')">Julio</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Agosto')">Agosto</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Septiembre')">Septiembre</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Octubre')">Octubre</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Noviembre')">Noviembre</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="selectOption('monthDisplay', 'Diciembre')">Diciembre</a></li>
+                        <!-- Months will be populated by JavaScript -->
                     </ul>
                 </div>
-                <div class="w-100 dropdown dropup d-inline-block">
+                <div class="w-100 dropdown d-inline-block">
                     <button class="birthdayButton btn dropdown-toggle d-flex justify-content-between align-items-center" type="button" id="dropdownYear" data-bs-toggle="dropdown" aria-expanded="false">
                         <span id="yearDisplay">Año</span>
                         <span class="dropdown-arrow"></span>
                     </button>
                     <ul id="yearOptions" class="dropdown-menu" aria-labelledby="dropdownYear">
-                        <script>
-                            const currentYear = new Date().getFullYear();
-                            for (let i = currentYear; i >= 1900; i--) {
-                                document.write(`<li><a class="dropdown-item" href="#" onclick="selectOption('yearDisplay', ${i})">${i}</a></li>`);
-                            }
-                        </script>
+                        <!-- Years will be populated by JavaScript -->
                     </ul>
                 </div>
             </div>
@@ -114,108 +94,82 @@
             <img id="logo" src="~/Assets/images/LOGOTIPO GOB MPAL.png" alt="logotipo_oficial_gob_chihuahua" />
         </div>
     </div>
-    <script>
-        // guardar los valores de la fecha de nacimiento
-        var selectedDay = "";
-        var selectedMonth = "";
-        var selectedYear = "";
 
-        function selectDateOption(elementId, value) {
-            document.getElementById(elementId).textContent = value;
-            if (elementId === "dayDisplay") {
-                selectedDay = value;
-            } else if (elementId === "monthDisplay") {
-                selectedMonth = value;
-            } else if (elementId === "yearDisplay") {
-                selectedYear = value;
-            }
-        }
-    </script>
-    <script>
-        // show different values in dropdowns
-        function selectGeneralOption(dropdownId, value) {
-            document.getElementById(dropdownId).textContent = value;
-        }
-    </script>
     <script>
         var selectedGender = "";
         function selectGender(selectedButton) {
-            // Remove 'selected' class of all buttons called 'gender' class.
             var buttons = document.querySelectorAll('.gender');
             buttons.forEach(function (button) {
                 button.classList.remove('selected');
             });
-
-            // add 'selected' class to clicked button
             selectedButton.classList.add('selected');
-            // Guardar el género seleccionado en la variable global
             selectedGender = selectedButton.textContent;
         }
-    </script>
 
-    <script>
-        var timeOutMessage = setTimeout(() => {
-            $('#errorMessage').hide();
-        }, 5000);
-        // Script to send data with jQuery
-        $(document).ready(() => {
-            $(".RegisterButton").on("click", function ()  {
-                console.log("funciona?");
+        $(document).ready(function () {
+            // Populate date dropdowns
+            var months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            var currentYear = new Date().getFullYear();
+
+            for (var i = 1; i <= 31; i++) {
+                $('#dayOptions').append(`<li><a class="dropdown-item" href="#" onclick="selectDateOption('dayDisplay', ${i})">${i}</a></li>`);
+            }
+
+            months.forEach(function (month, index) {
+                $('#monthOptions').append(`<li><a class="dropdown-item" href="#" onclick="selectDateOption('monthDisplay', '${month}')">${month}</a></li>`);
+            });
+
+            for (var i = currentYear; i >= 1900; i--) {
+                $('#yearOptions').append(`<li><a class="dropdown-item" href="#" onclick="selectDateOption('yearDisplay', ${i})">${i}</a></li>`);
+            }
+
+            var timeOutMessage;
+
+            $(".RegisterButton").on("click", function () {
                 var name = $("#name").val();
                 var lastName = $("#lastName").val();
                 var email = $('#email').val();
                 var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
-                var newPassword = $('#Password').val();
+                var password = $('#Password').val();
                 var confirmPassword = $('#ConfirmPassword').val();
 
-                // validate if the firstName or lastName is empty
                 if (name === "") {
-                    $('#errorMessage').text("Por favor, ingrese su nombre.").show();
-                    timeOutMessage
+                    showErrorMessage("Por favor, ingrese su nombre.");
                     return;
                 }
                 if (lastName === "") {
-                    $('#errorMessage').text("Por favor, ingrese su apellido.").show();
-                    timeOutMessage
+                    showErrorMessage("Por favor, ingrese su apellido.");
                     return;
                 }
-                // Validate if the email input is empty
                 if (!email) {
-                    $('#errorMessage').text("Por favor, ingrese su dirección de correo electrónico.").show();
-                    timeOutMessage
+                    showErrorMessage("Por favor, ingrese su dirección de correo electrónico.");
                     return;
                 }
-
-                // Validate the email format
                 if (!emailRegex.test(email)) {
-                    $('#errorMessage').text("Por favor, ingrese una dirección de correo electrónico válida.").show();
-                    timeOutMessage
+                    showErrorMessage("Por favor, ingrese una dirección de correo electrónico válida.");
+                    return;
+                }
+                if (password === "" || confirmPassword === "") {
+                    showErrorMessage("Favor de insertar su contraseña");
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    showErrorMessage("Las contraseñas no coinciden.");
                     return;
                 }
 
-                // Verify if both fields are completed
-                if (newPassword === "" || confirmPassword === "") {
-                    $('#errorMessage').text("Favor de insertar su nueva contraseña").show();
-                    timeOutMessage
-                    return;
-                }
-                if (newPassword !== confirmPassword) {
-                    $('#errorMessage').text("Las contraseñas no coinciden.").show();
-                    timeOutMessage
+                var day = $("#dayDisplay").text();
+                var month = $("#monthDisplay").text();
+                var year = $("#yearDisplay").text();
+
+                if (day === "Día" || month === "Mes" || year === "Año") {
+                    showErrorMessage("Por favor, seleccione su fecha de nacimiento completa.");
                     return;
                 }
 
-                // Función para convertir el nombre del mes a su número correspondiente
-                function getMonthNumber(monthName) {
-                    const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-                    return (months.indexOf(monthName) + 1).toString().padStart(2, '0'); // Retorna el número del mes con dos dígitos
-                }
+                var monthNumber = months.indexOf(month) + 1;
+                var birthDate = `${year}-${monthNumber.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 
-                // Formatear la fecha en formato "YYYY-MM-DD"
-                let monthNumber = getMonthNumber(selectedMonth);
-                let birthDate = `${selectedYear}-${monthNumber}-${selectedDay.toString().padStart(1, '0')}`;
-
-                // Send the AJAX request to the backend
                 $.ajax({
                     url: "/api/User/register",
                     type: "POST",
@@ -224,10 +178,9 @@
                         name: name,
                         lastName: lastName,
                         email: email,
-                        newPassword: newPassword,
-                        confirmPassword: confirmPassword,
-                        birthDate: birthDate, // format YYYY-MM-DD
-                        gender: selectedGender 
+                        password: password,
+                        birthDate: birthDate,
+                        gender: selectedGender
                     }),
                     success: (response) => {
                         $("#successMessage").text("Registro realizado con éxito!").show();
@@ -235,13 +188,26 @@
                     },
                     error: function (xhr, status, error) {
                         var errorMessage = xhr.responseJSON?.title || 'Error al hacer el registro de usuario';
-                        alert(errorMessage);
+                        showErrorMessage(errorMessage);
                     }
                 });
             });
+
+            function showErrorMessage(message) {
+                $('#errorMessage').text(message).show();
+                clearTimeout(timeOutMessage);
+                timeOutMessage = setTimeout(() => {
+                    $('#errorMessage').hide();
+                }, 5000);
+            }
         });
+
+        function selectDateOption(elementId, value) {
+            document.getElementById(elementId).textContent = value;
+        }
     </script>
-    <!-- Bootstrap JS and Popper.js as normal HTML -->
+
+    <!-- Bootstrap JS and Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/popper.js@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
