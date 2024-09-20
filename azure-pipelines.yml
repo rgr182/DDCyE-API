@@ -45,32 +45,37 @@ steps:
     targetType: 'inline'
     script: |
       $ErrorActionPreference = "Stop"
-      $source = "$(Build.ArtifactStagingDirectory)\*"
+      $VerbosePreference = "Continue"
+      $source = "$(Build.ArtifactStagingDirectory)"
       $destination = "\\158.222.102.253\C$\inetpub\WebAPI"
       $username = "$(Username)"
-      $password = ConvertTo-SecureString "$(Password)" -AsPlainText -Force
-      $credential = New-Object System.Management.Automation.PSCredential($username, $password)
+      $password = "$(Password)"
       
       try {
-        Write-Host "Creating PSDrive..."
-        New-PSDrive -Name RemoteServer -PSProvider FileSystem -Root $destination -Credential $credential -ErrorAction Stop
+        Write-Verbose "Attempting to connect to remote share..."
+        $netUseResult = net use $destination /user:$username $password 2>&1
+        if ($LASTEXITCODE -ne 0) {
+          throw "Failed to connect to remote share. Net Use output: $netUseResult"
+        }
+        Write-Verbose "Connected to remote share successfully."
         
-        Write-Host "Copying files..."
-        Copy-Item -Path $source -Destination "RemoteServer:" -Recurse -Force
-        
-        Write-Host "Files copied successfully."
+        Write-Verbose "Copying files..."
+        $robocopyResult = robocopy $source $destination /E /NFL /NDL /NJH /NJS /nc /ns /np
+        if ($LASTEXITCODE -gt 7) {
+          throw "Robocopy encountered errors. Exit code: $LASTEXITCODE"
+        }
+        Write-Verbose "Files copied successfully."
       }
       catch {
         Write-Error "An error occurred: $_"
         throw
       }
       finally {
-        if (Get-PSDrive -Name RemoteServer -ErrorAction SilentlyContinue) {
-          Remove-PSDrive -Name RemoteServer
-          Write-Host "PSDrive removed."
+        if (Test-Path $destination) {
+          Write-Verbose "Removing network connection..."
+          net use $destination /delete
         }
       }
-
 # Restart IIS on the remote server using PowerShell
 - task: PowerShell@2
   inputs:
