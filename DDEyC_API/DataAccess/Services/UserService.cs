@@ -11,7 +11,7 @@ namespace DDEyC_API.DataAccess.Services
         Task<Users> GetUserByEmail(string email);
         Task<Users> Register(UserRegistrationDTO request);
         Task<Users> Login(string email, string password);
-        Task<string> VerifyExistingEmail(string email);
+        Task<bool> VerifyExistingEmail(string email);
     }
 
     public class UserService : IUserService
@@ -79,9 +79,19 @@ namespace DDEyC_API.DataAccess.Services
                 Users user = new Users
                 {
                     Name = registrationDTO.Name,
+                    LastName = registrationDTO.LastName,
                     Email = registrationDTO.Email,
-                    Password = passwordHash,
+                    Password = passwordHash
                 };
+                if (registrationDTO.BirthDate.HasValue)
+                {
+                    user.BirthDate = registrationDTO.BirthDate.Value;
+                }
+
+                if (!string.IsNullOrWhiteSpace(registrationDTO.Gender))
+                {
+                    user.Gender = registrationDTO.Gender;
+                }
 
                 return await _userRepository.AddUser(user);
             }
@@ -125,12 +135,12 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
-        public async Task<string> VerifyExistingEmail(string email)
+        public async Task<bool> VerifyExistingEmail(string email)
         {
             try
             {
                 var existingUser = await _userRepository.GetUserByEmail(email);
-                return existingUser != null ? "Email already exists" : "Email available";
+                return existingUser is not null;
             }
             catch (Exception ex)
             {

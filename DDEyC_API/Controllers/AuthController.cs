@@ -150,7 +150,13 @@ namespace DDEyC.Controllers
         #endregion
 
         #region MVC Views
-
+        /// register View
+        [AllowAnonymous]
+        [HttpGet("registerView")]
+        public IActionResult RegisterView()
+        {
+            return View("RegisterView");
+        }
         /// <summary>
         /// Validates the recovery token for password reset.
         /// </summary>

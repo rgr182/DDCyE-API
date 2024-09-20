@@ -82,7 +82,7 @@ namespace DDEyC.Controllers
             {
                 // Verify if the email is already registered
                 var emailVerificationResult = await _usersService.VerifyExistingEmail(request.Email);
-                if (emailVerificationResult == "Email already exists")
+                if (emailVerificationResult)
                 {
                     return BadRequest(new { message = "Registration failed", error = "Email already exists" });
                 }
