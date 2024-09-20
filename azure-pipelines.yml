@@ -46,41 +46,20 @@ steps:
     targetFolder: 'C:/inetpub/WebAPI'
     cleanTargetFolder: false
 
-# Restart IIS on the remote server using PowerShell
 - task: PowerShell@2
   inputs:
     targetType: 'inline'
     script: |
-      $ErrorActionPreference = "Stop"
-      $username = "$(Username)"
-      $password = ConvertTo-SecureString "$(Password)" -AsPlainText -Force
-      $credential = New-Object System.Management.Automation.PSCredential($username, $password)
-      
+      Write-Host "Attempting to restart IIS..."
       try {
-        Write-Host "Logging credential information (safely)..."
-        Write-Host "Username being used: $username"
-        Write-Host "Password length: $($password.Length)"
-        
-        Write-Host "Configuring WinRM..."
-        Set-Item WSMan:\localhost\Client\TrustedHosts -Value "158.222.102.253" -Force
-        
-        Write-Host "Attempting to create PSSession..."
-        $session = New-PSSession -ComputerName "158.222.102.253" -Credential $credential -ErrorAction Stop
-        
-        Write-Host "PSSession created successfully. Attempting to restart IIS..."
-        Invoke-Command -Session $session -ScriptBlock {
-          Import-Module WebAdministration
-          $result = iisreset
-          if ($LASTEXITCODE -ne 0) {
-            throw "IISReset failed with exit code $LASTEXITCODE. Output: $result"
-          }
-          Write-Host $result
+        $result = iisreset
+        if ($LASTEXITCODE -ne 0) {
+          throw "IISReset failed with exit code $LASTEXITCODE. Output: $result"
         }
-        
-        Remove-PSSession $session
+        Write-Host $result
         Write-Host "IIS restarted successfully."
       }
       catch {
-        Write-Error "An error occurred: $_"
+        Write-Error "An error occurred while restarting IIS: $_"
         throw
       }
