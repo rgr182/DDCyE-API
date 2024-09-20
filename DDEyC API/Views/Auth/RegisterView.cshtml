@@ -96,7 +96,7 @@
     </div>
 
     <script>
-        var selectedGender = "";
+        var selectedGender = null;
         function selectGender(selectedButton) {
             var buttons = document.querySelectorAll('.gender');
             buttons.forEach(function (button) {
@@ -158,30 +158,34 @@
                     return;
                 }
 
-                var day = $("#dayDisplay").text();
-                var month = $("#monthDisplay").text();
-                var year = $("#yearDisplay").text();
+                var day = $("#dayDisplay").text() !== "Día" ? $("#dayDisplay").text() : null;
+                var month = $("#monthDisplay").text() !== "Mes" ? $("#monthDisplay").text() : null;
+                var year = $("#yearDisplay").text() !== "Año" ? $("#yearDisplay").text() : null;
 
-                if (day === "Día" || month === "Mes" || year === "Año") {
-                    showErrorMessage("Por favor, seleccione su fecha de nacimiento completa.");
-                    return;
+                var birthDate = null;
+                if (day && month && year) {
+                    var monthNumber = months.indexOf(month) + 1;
+                    birthDate = `${year}-${monthNumber.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                 }
 
-                var monthNumber = months.indexOf(month) + 1;
-                var birthDate = `${year}-${monthNumber.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                var userData = {
+                    name: name,
+                    lastName: lastName,
+                    email: email,
+                    password: password
+                };
+                if (birthDate) {
+                    userData.birthDate = birthDate;
+                }
+                if (selectedGender) {
+                    userData.gender = selectedGender;
+                }
 
                 $.ajax({
                     url: "/api/User/register",
                     type: "POST",
                     contentType: "application/json",
-                    data: JSON.stringify({
-                        name: name,
-                        lastName: lastName,
-                        email: email,
-                        password: password,
-                        birthDate: birthDate,
-                        gender: selectedGender
-                    }),
+                    data: JSON.stringify(userData),
                     success: (response) => {
                         $("#successMessage").text("Registro realizado con éxito!").show();
                         $('#errorMessage').hide();

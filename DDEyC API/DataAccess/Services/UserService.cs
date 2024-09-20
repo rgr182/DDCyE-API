@@ -81,10 +81,17 @@ namespace DDEyC_API.DataAccess.Services
                     Name = registrationDTO.Name,
                     LastName = registrationDTO.LastName,
                     Email = registrationDTO.Email,
-                    Password = passwordHash,
-                    BirthDate = registrationDTO.BirthDate,
-                    Gender = registrationDTO.Gender,
+                    Password = passwordHash
                 };
+                if (registrationDTO.BirthDate.HasValue)
+                {
+                    user.BirthDate = registrationDTO.BirthDate.Value;
+                }
+
+                if (!string.IsNullOrWhiteSpace(registrationDTO.Gender))
+                {
+                    user.Gender = registrationDTO.Gender;
+                }
 
                 return await _userRepository.AddUser(user);
             }
