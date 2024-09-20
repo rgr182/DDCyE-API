@@ -51,87 +51,48 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
+      $ErrorActionPreference = "Stop"
       $username = "$(Username)"
       $password = "$(Password)"
-      $siteName = "DDEyC_API"  # Replace with your actual site name
+      $siteName = "DDEyC_API"
 
       Write-Host "Attempting to restart IIS site: $siteName"
       try {
-        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-        $startInfo.FileName = "cmd.exe"
-        $startInfo.Arguments = "/c %windir%\system32\inetsrv\appcmd stop site /site.name:`"$siteName`" && %windir%\system32\inetsrv\appcmd start site /site.name:`"$siteName`""
-        $startInfo.Domain = $env:COMPUTERNAME
-        $startInfo.UserName = $username
-        $startInfo.Password = ConvertTo-SecureString $password -AsPlainText -Force
-        $startInfo.UseShellExecute = $false
-        $startInfo.RedirectStandardOutput = $true
-        $startInfo.RedirectStandardError = $true
-
-        $process = New-Object System.Diagnostics.Process
-        $process.StartInfo = $startInfo
-        $process.Start() | Out-Null
-        $output = $process.StandardOutput.ReadToEnd()
-        $error_output = $process.StandardError.ReadToEnd()
-        $process.WaitForExit()
-
-        Write-Host "Output:"
-        Write-Host $output
-        
-        if ($error_output) {
-          Write-Host "Error Output:"
-          Write-Host $error_output
+        $scriptBlock = {
+          param($siteName)
+          Import-Module WebAdministration
+          $site = Get-Website -Name $siteName
+          if ($site) {
+            Write-Host "Site found. Current state: $($site.State)"
+            if ($site.State -eq "Started") {
+              Write-Host "Stopping site..."
+              Stop-Website -Name $siteName
+              Start-Sleep -Seconds 5
+            }
+            Write-Host "Starting site..."
+            Start-Website -Name $siteName
+            Start-Sleep -Seconds 5
+            $site = Get-Website -Name $siteName
+            Write-Host "Site state after restart attempt: $($site.State)"
+            if ($site.State -eq "Started") {
+              Write-Host "Site successfully restarted."
+            } else {
+              throw "Site is not in 'Started' state after restart attempt."
+            }
+          } else {
+            throw "Site '$siteName' not found."
+          }
         }
 
-        if ($process.ExitCode -eq 0) {
-          Write-Host "IIS site '$siteName' restarted successfully."
-        } else {
-          throw "IIS site restart failed with exit code $($process.ExitCode)"
-        }
+        $result = Invoke-Command -ComputerName localhost -Credential (New-Object System.Management.Automation.PSCredential($username, (ConvertTo-SecureString $password -AsPlainText -Force))) -ScriptBlock $scriptBlock -ArgumentList $siteName
+
+        Write-Host "Command output:"
+        Write-Host $result
       }
       catch {
-        Write-Error "An error occurred while restarting the IIS site: $_"
-        throw
-      }
-  inputs:
-    targetType: 'inline'
-    script: |
-      $username = "$(Username)"
-      $password = "$(Password)"
-
-      Write-Host "Attempting to restart IIS using provided credentials..."
-      try {
-        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-        $startInfo.FileName = "cmd.exe"
-        $startInfo.Arguments = "/c iisreset"
-        $startInfo.Domain = $env:COMPUTERNAME
-        $startInfo.UserName = $username
-        $startInfo.Password = ConvertTo-SecureString $password -AsPlainText -Force
-        $startInfo.UseShellExecute = $false
-        $startInfo.RedirectStandardOutput = $true
-        $startInfo.RedirectStandardError = $true
-
-        $process = New-Object System.Diagnostics.Process
-        $process.StartInfo = $startInfo
-        $process.Start() | Out-Null
-        $output = $process.StandardOutput.ReadToEnd()
-        $error_output = $process.StandardError.ReadToEnd()
-        $process.WaitForExit()
-
-        Write-Host "Standard Output:"
-        Write-Host $output
-        
-        if ($error_output) {
-          Write-Host "Error Output:"
-          Write-Host $error_output
-        }
-
-        if ($process.ExitCode -eq 0) {
-          Write-Host "IIS restarted successfully."
-        } else {
-          throw "IIS reset failed with exit code $($process.ExitCode)"
-        }
-      }
-      catch {
-        Write-Error "An error occurred while restarting IIS: $_"
+        Write-Host "An error occurred:"
+        Write-Host "Exception type: $($_.Exception.GetType().FullName)"
+        Write-Host "Exception message: $($_.Exception.Message)"
+        Write-Host "Stack trace: $($_.ScriptStackTrace)"
         throw
       }
