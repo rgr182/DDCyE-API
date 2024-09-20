@@ -46,18 +46,27 @@ steps:
     targetFolder: 'C:/inetpub/WebAPI'
     cleanTargetFolder: false
 
+steps:
 - task: PowerShell@2
   inputs:
     targetType: 'inline'
     script: |
-      Write-Host "Attempting to restart IIS..."
+      $username = "$(Username)"
+      $password = ConvertTo-SecureString "$(Password)" -AsPlainText -Force
+      $credential = New-Object System.Management.Automation.PSCredential($username, $password)
+
+      Write-Host "Attempting to restart IIS using provided credentials..."
       try {
-        $result = iisreset
-        if ($LASTEXITCODE -ne 0) {
-          throw "IISReset failed with exit code $LASTEXITCODE. Output: $result"
+        $result = Invoke-Command -ComputerName "localhost" -Credential $credential -ScriptBlock {
+          $output = iisreset
+          return $output
         }
         Write-Host $result
-        Write-Host "IIS restarted successfully."
+        if ($result -like "*Internet services successfully restarted*") {
+          Write-Host "IIS restarted successfully."
+        } else {
+          throw "IIS reset might have failed. Please check the output."
+        }
       }
       catch {
         Write-Error "An error occurred while restarting IIS: $_"
