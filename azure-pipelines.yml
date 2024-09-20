@@ -59,10 +59,10 @@ steps:
     targetFolder: 'C:/inetpub/WebAPI'
     cleanTargetFolder: false
 
-# Execute SSH commands on the remote server to restart IIS
 - task: SSH@0
   inputs:
     sshEndpoint: 'SSH Devops'
     runOptions: 'inline'
     inline: |
-      powershell.exe -Command "iisreset"
+      powershell.exe -Command "& {Import-Module WebAdministration; iisreset}"
+    failOnStdErr: true
