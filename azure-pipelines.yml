@@ -39,43 +39,12 @@ steps:
     arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
     zipAfterPublish: true
 
-# Copy the published files to the remote server using PowerShell
-- task: PowerShell@2
+- task: CopyFilesOverSSH@0
   inputs:
-    targetType: 'inline'
-    script: |
-      $ErrorActionPreference = "Stop"
-      $VerbosePreference = "Continue"
-      $source = "$(Build.ArtifactStagingDirectory)"
-      $destination = "\\158.222.102.253\C$\inetpub\WebAPI"
-      $username = "$(Username)"
-      $password = "$(Password)"
-      
-      try {
-        Write-Verbose "Attempting to connect to remote share..."
-        $netUseResult = net use $destination /user:$username $password 2>&1
-        if ($LASTEXITCODE -ne 0) {
-          throw "Failed to connect to remote share. Net Use output: $netUseResult"
-        }
-        Write-Verbose "Connected to remote share successfully."
-        
-        Write-Verbose "Copying files..."
-        $robocopyResult = robocopy $source $destination /E /NFL /NDL /NJH /NJS /nc /ns /np
-        if ($LASTEXITCODE -gt 7) {
-          throw "Robocopy encountered errors. Exit code: $LASTEXITCODE"
-        }
-        Write-Verbose "Files copied successfully."
-      }
-      catch {
-        Write-Error "An error occurred: $_"
-        throw
-      }
-      finally {
-        if (Test-Path $destination) {
-          Write-Verbose "Removing network connection..."
-          net use $destination /delete
-        }
-      }
+    sshEndpoint: 'SSH Devops'
+    sourceFolder: '$(Build.ArtifactStagingDirectory)'
+    targetFolder: 'C:/inetpub/WebAPI'
+    cleanTargetFolder: false
 # Restart IIS on the remote server using PowerShell
 - task: PowerShell@2
   inputs:
