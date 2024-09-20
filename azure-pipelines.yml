@@ -9,18 +9,18 @@ pool:
 steps:
 # Optionally install Git (which includes tr command) on the agent machine
 # Uncomment this task if you want to try installing Git
-# - task: PowerShell@2
-#   displayName: 'Install Git (includes tr command)'
-#   inputs:
-#     targetType: 'inline'
-#     script: |
-#       if (!(Get-Command git -ErrorAction SilentlyContinue)) {
-#         Write-Host "Git not found. Installing..."
-#         choco install git -y
-#         refreshenv
-#       } else {
-#         Write-Host "Git is already installed."
-#       }
+- task: PowerShell@2
+  displayName: 'Install Git (includes tr command)'
+  inputs:
+    targetType: 'inline'
+    script: |
+      if (!(Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Host "Git not found. Installing..."
+        choco install git -y
+        refreshenv
+      } else {
+        Write-Host "Git is already installed."
+      }
 
 # Install .NET Core SDK
 - task: UseDotNet@2
