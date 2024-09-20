@@ -7,6 +7,21 @@ pool:
   name: 'Self-Hosted Pool'  # Name of the pool for the self-hosted agent
 
 steps:
+# Optionally install Git (which includes tr command) on the agent machine
+# Uncomment this task if you want to try installing Git
+# - task: PowerShell@2
+#   displayName: 'Install Git (includes tr command)'
+#   inputs:
+#     targetType: 'inline'
+#     script: |
+#       if (!(Get-Command git -ErrorAction SilentlyContinue)) {
+#         Write-Host "Git not found. Installing..."
+#         choco install git -y
+#         refreshenv
+#       } else {
+#         Write-Host "Git is already installed."
+#       }
+
 # Install .NET Core SDK
 - task: UseDotNet@2
   inputs:
@@ -44,27 +59,10 @@ steps:
     targetFolder: 'C:/inetpub/WebAPI'
     cleanTargetFolder: false
 
-# Execute SSH commands on the remote server to restart IIS (Option 1: Inline command)
+# Execute SSH commands on the remote server to restart IIS
 - task: SSH@0
   inputs:
     sshEndpoint: 'SSH Devops'
     runOptions: 'inline'
     inline: |
       powershell.exe -Command "iisreset"
-
-# Alternative: Execute SSH commands on the remote server to restart IIS (Option 2: Using a script)
-# Uncomment this task and comment out the previous SSH task if you want to try this approach
-# - task: SSH@0
-#   inputs:
-#     sshEndpoint: 'SSH Devops'
-#     runOptions: 'script'
-#     scriptPath: '$(Build.SourcesDirectory)/restart-iis.ps1'
-
-# Install Git for Windows (which includes tr command)
-# Uncomment this task if you want to try installing Git for Windows
-- task: PowerShell@2
-  inputs:
-    targetType: 'inline'
-    script: |
-      choco install git -y
-      refreshenv
