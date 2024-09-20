@@ -28,14 +28,14 @@ $(document).ready(() => {
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(email),
-            success: (response) => {
+            success: () => {
                 // Hide initial content and show success message
                 $('.initialContent').fadeOut(400, function () {
                     $('.successContent').fadeIn(400);
                     $('#errorMessage').hide();
                 });
             },
-            error: function (xhr, status, error) {
+            error: function (xhr, status) {
                 // Handle different error responses based on status code
                 if (status === 0) {
                     $('#errorMessage').text("Estás desconectado. Verifica tu conexión e inténtalo de nuevo.").show();
