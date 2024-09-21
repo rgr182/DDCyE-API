@@ -1,4 +1,5 @@
-﻿using DDEyC_API.DataAccess.Services;
+﻿using System.Net;
+using DDEyC_API.DataAccess.Services;
 using DDEyC_Auth.DataAccess.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -74,28 +75,31 @@ namespace DDEyC.Controllers
             }
         }
 
-        [AllowAnonymous]
+  [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register(UserRegistrationDTO request)
         {
             try
             {
-                // Verify if the email is already registered
-                var emailVerificationResult = await _usersService.VerifyExistingEmail(request.Email);
-                if (emailVerificationResult)
+                var emailExists = await _usersService.VerifyExistingEmail(request.Email);
+                _logger.LogInformation("Email exists: {EmailExists}", emailExists);
+                if (emailExists)
                 {
-                    return BadRequest(new { message = "Registration failed", error = "Email already exists"});
+                    return Conflict(new { errorCode = "EMAIL_ALREADY_REGISTERED" });
                 }
 
-                // If the email is not registered, proceed with the registration
                 var user = await _usersService.Register(request);
-                return Ok(new { message = "Registration successful", user.Email });
+                return Ok(new { message = "REGISTRATION_SUCCESSFUL", user.Email });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { errorCode = "INVALID_INPUT", details = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while registering a user");
-                return BadRequest(new { message = "Registration failed", error = ex.Message });
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { errorCode = "REGISTRATION_FAILED" });
             }
-        }        
+        }    
     }
 }

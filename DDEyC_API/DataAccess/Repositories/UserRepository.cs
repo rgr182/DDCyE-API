@@ -1,6 +1,7 @@
 using DDEyC_API.DataAccess.Context;
 using DDEyC_Auth.DataAccess.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 
 namespace DDEyC_API.DataAccess.Repositories
 {
@@ -8,7 +9,7 @@ namespace DDEyC_API.DataAccess.Repositories
     {
         Task<List<Users>> GetAllUsers();
         Task<Users> GetUser(int id);
-        Task<Users> GetUserByEmail(string email);
+        Task<Users?> GetUserByEmail(string email);
         Task<Users> AddUser(Users user);
         Task<bool> VerifyExistingEmail(string email);
         Task UpdateUser(Users user); // Method to update the user
@@ -68,11 +69,15 @@ namespace DDEyC_API.DataAccess.Repositories
             }
         }
 
-        public async Task<Users> GetUserByEmail(string email)
+        public async Task<Users?> GetUserByEmail(string email)
         {
             try
             {
-                return await _authContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+                _logger.LogInformation("Retrieving user with email: {UserEmail}", email);
+                _logger.LogInformation("------------------------------------------");
+                 var user= await _authContext.Users.FirstOrDefaultAsync(u => u.Email == email) ?? null;
+                 _logger.LogInformation("User found: {UserFound}", user is not null);
+                return user;
             }
             catch (Exception ex)
             {
@@ -86,7 +91,7 @@ namespace DDEyC_API.DataAccess.Repositories
             try
             {
                 var existingUser = await _authContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-                return existingUser != null; // Returns true if the email exists, false if not
+                return existingUser is not null; // Returns true if the email exists, false if not
             }
             catch (Exception ex)
             {
