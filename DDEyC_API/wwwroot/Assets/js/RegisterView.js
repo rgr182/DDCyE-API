@@ -93,7 +93,7 @@ $(document).ready(function () {
                 $('#errorMessage').hide();
             },
             error: function (xhr, status, error) {
-                var errorMessage = xhr.responseJSON?.title || 'Error al hacer el registro de usuario';
+                var errorMessage = xhr.responseJSON?.error || 'Error al hacer el registro de usuario';
                 showErrorMessage(errorMessage);
             }
         });
