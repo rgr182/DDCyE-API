@@ -8,10 +8,10 @@ const ERROR_MESSAGES = {
     EMAIL_INVALID: "Por favor, ingrese una dirección de correo electrónico válida.",
     PASSWORD_REQUIRED: "Favor de insertar su contraseña",
     PASSWORDS_MISMATCH: "Las contraseñas no coinciden.",
-    INVALID_INPUT: "La contraseña debe de tener al menos 8 caracteres.",
-    REGISTRATION_FAILED: "Error al hacer el registro de usuario",
-    DEFAULT: "Ocurrió un error. Por favor, inténtelo de nuevo.",
-    EMAIL_ALREADY_REGISTERED: "Ya existe una cuenta con esa dirección de correo electrónico."
+    EMAIL_ALREADY_REGISTERED: "Este correo electrónico ya está registrado.",
+    INVALID_INPUT: "La contrasena debe tener al menos 8 caracteres.",
+    REGISTRATION_FAILED: "No se pudo completar el registro. Por favor, inténtelo de nuevo más tarde.",
+    DEFAULT: "Ocurrió un error inesperado. Por favor, inténtelo de nuevo."
 };
 
 function selectGender(selectedButton) {
@@ -43,15 +43,34 @@ function selectDateOption(elementId, value) {
     document.getElementById(elementId).textContent = value;
 }
 
-function showErrorMessage(message) {
-    $('#errorMessage').text(message).show();
-    clearTimeout(window.timeOutMessage);
-    window.timeOutMessage = setTimeout(() => {
-        $('#errorMessage').hide();
-    }, 5000);
+function showErrorMessage(fieldId, message) {
+    console.log(`Showing error for ${fieldId}: ${message}`);
+    let errorElement;
+    
+    if (fieldId === 'general') {
+        errorElement = $('#errorMessage');
+    } else {
+        errorElement = $(`#${fieldId}`).siblings('.error-message');
+    }
+    
+    if (errorElement.length) {
+        errorElement.text(message).show();
+    } else {
+        console.error(`Error element not found for ${fieldId}`);
+        $('#errorMessage').text(message).show();
+    }
+}
+
+function clearErrorMessages() {
+    console.log('Clearing all error messages');
+    $('.error-message').text('').hide();
+    $('#errorMessage').text('').hide();
 }
 
 function validateForm() {
+    let isValid = true;
+    clearErrorMessages();
+
     const name = $("#name").val().trim();
     const lastName = $("#lastName").val().trim();
     const email = $('#email').val().trim();
@@ -60,31 +79,30 @@ function validateForm() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (name === "") {
-        showErrorMessage(ERROR_MESSAGES.NAME_REQUIRED);
-        return false;
+        showErrorMessage('name', ERROR_MESSAGES.NAME_REQUIRED);
+        isValid = false;
     }
     if (lastName === "") {
-        showErrorMessage(ERROR_MESSAGES.LASTNAME_REQUIRED);
-        return false;
+        showErrorMessage('lastName', ERROR_MESSAGES.LASTNAME_REQUIRED);
+        isValid = false;
     }
     if (!email) {
-        showErrorMessage(ERROR_MESSAGES.EMAIL_REQUIRED);
-        return false;
+        showErrorMessage('email', ERROR_MESSAGES.EMAIL_REQUIRED);
+        isValid = false;
+    } else if (!emailRegex.test(email)) {
+        showErrorMessage('email', ERROR_MESSAGES.EMAIL_INVALID);
+        isValid = false;
     }
-    if (!emailRegex.test(email)) {
-        showErrorMessage(ERROR_MESSAGES.EMAIL_INVALID);
-        return false;
-    }
-    if (password === "" || confirmPassword === "") {
-        showErrorMessage(ERROR_MESSAGES.PASSWORD_REQUIRED);
-        return false;
+    if (password === "") {
+        showErrorMessage('Password', ERROR_MESSAGES.PASSWORD_REQUIRED);
+        isValid = false;
     }
     if (password !== confirmPassword) {
-        showErrorMessage(ERROR_MESSAGES.PASSWORDS_MISMATCH);
-        return false;
+        showErrorMessage('ConfirmPassword', ERROR_MESSAGES.PASSWORDS_MISMATCH);
+        isValid = false;
     }
 
-    return true;
+    return isValid;
 }
 
 function getBirthDate() {
@@ -100,6 +118,27 @@ function getBirthDate() {
     return null;
 }
 
+function handleRegistrationError(xhr) {
+    console.log('Handling registration error', xhr);
+    if (xhr.responseJSON && xhr.responseJSON.errors) {
+        const errors = xhr.responseJSON.errors;
+        Object.keys(errors).forEach(key => {
+            showErrorMessage(key, errors[key][0]);
+        });
+    } else if (xhr.responseJSON && xhr.responseJSON.errorCode) {
+        const errorCode = xhr.responseJSON.errorCode;
+        if (ERROR_MESSAGES[errorCode]) {
+            showErrorMessage('general', ERROR_MESSAGES[errorCode]);
+        } else {
+            showErrorMessage('general', ERROR_MESSAGES.DEFAULT);
+        }
+    } else if (xhr.status === 409) {
+        showErrorMessage('email', ERROR_MESSAGES.EMAIL_ALREADY_REGISTERED);
+    } else {
+        showErrorMessage('general', ERROR_MESSAGES.REGISTRATION_FAILED);
+    }
+}
+
 function registerUser(userData) {
     $.ajax({
         url: "/api/User/register",
@@ -107,12 +146,13 @@ function registerUser(userData) {
         contentType: "application/json",
         data: JSON.stringify(userData),
         success: (response) => {
+            console.log('Registration successful', response);
             $("#successMessage").text("Registro realizado con éxito!").show();
-            $('#errorMessage').hide();
+            clearErrorMessages();
         },
         error: function (xhr, status, error) {
-            const errorMessage = xhr.responseJSON?.error || ERROR_MESSAGES.REGISTRATION_FAILED;
-            showErrorMessage(errorMessage);
+            console.log('Registration failed', xhr, status, error);
+            handleRegistrationError(xhr);
         }
     });
 }
@@ -121,7 +161,9 @@ $(document).ready(function () {
     populateDateDropdowns();
 
     $(".RegisterButton").on("click", function () {
+        console.log('Register button clicked');
         if (!validateForm()) {
+            console.log('Form validation failed');
             return;
         }
 
@@ -142,5 +184,10 @@ $(document).ready(function () {
         }
 
         registerUser(userData);
+    });
+
+    $('#registrationForm input').on('input', function() {
+        console.log('Input changed, clearing errors');
+        clearErrorMessages();
     });
 });
