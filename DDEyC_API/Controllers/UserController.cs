@@ -13,11 +13,13 @@ namespace DDEyC.Controllers
     {
         private readonly IUserService _usersService;
         private readonly ILogger<UserController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public UserController(IUserService usersService, ILogger<UserController> logger)
+        public UserController(IUserService usersService, ILogger<UserController> logger, IConfiguration configuration)
         {
             _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         [HttpGet(Name = "GetAllUsers")]        
@@ -75,7 +77,7 @@ namespace DDEyC.Controllers
             }
         }
 
-  [AllowAnonymous]
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register(UserRegistrationDTO request)
         {
@@ -89,7 +91,14 @@ namespace DDEyC.Controllers
                 }
 
                 var user = await _usersService.Register(request);
-                return Ok(new { message = "REGISTRATION_SUCCESSFUL", user.Email });
+                var loginPageUrl = _configuration["urls:LoginPageUrl"];
+
+                return Ok(new 
+                { 
+                    message = "REGISTRATION_SUCCESSFUL",
+                    user.Email,
+                    redirectUrl = loginPageUrl
+                });
             }
             catch (ArgumentException ex)
             {

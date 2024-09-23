@@ -1,4 +1,5 @@
 ﻿var selectedGender = null;
+
 const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
 const ERROR_MESSAGES = {
@@ -149,6 +150,9 @@ function registerUser(userData) {
             console.log('Registration successful', response);
             $("#successMessage").text("Registro realizado con éxito!").show();
             clearErrorMessages();
+
+            const redirectUrl = response.redirectUrl;
+                window.location.href = redirectUrl;
         },
         error: function (xhr, status, error) {
             console.log('Registration failed', xhr, status, error);

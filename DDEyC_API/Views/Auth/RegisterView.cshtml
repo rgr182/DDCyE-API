@@ -1,4 +1,5 @@
 ﻿@namespace DDEyC_API.Views.Auth
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     ViewData["Title"] = "RegisterView";
 }
@@ -94,7 +95,15 @@
             <img id="logo" src="~/Assets/images/LOGOTIPO GOB MPAL.png" alt="logotipo_oficial_gob_chihuahua" />
         </div>
     </div>
+    <script type="text/javascript">
+        const LOGINPAGE = "@Html.Raw(ViewData["LoginPageUrl"])";
+        const backButtonUrl = "@Configuration["Urls:LoginPageUrl"]";
 
+        // Asignar evento click al botón de "Volver"
+        document.querySelector('.back').addEventListener('click', function () {
+            window.location.href = backButtonUrl;
+        });
+    </script>
     <script src="~/Assets/js/RegisterView.js"></script>
 
     <!-- Bootstrap JS and Popper.js -->
