@@ -1,4 +1,6 @@
-﻿var timeOutMessage = setTimeout(() => {
+﻿const LOGINPAGE = "https://localhost:44347/LoginPage";
+
+var timeOutMessage = setTimeout(() => {
     $('#errorMessage').hide();
 }, 5000);
 
@@ -56,5 +58,9 @@ $(document).ready(() => {
                 $('#successContent').hide();
             }
         });
+    });
+
+    $(".back").on("click", function () {
+        window.location.href = LOGINPAGE;
     });
 });

@@ -75,7 +75,7 @@ namespace DDEyC.Controllers
             }
         }
 
-  [AllowAnonymous]
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register(UserRegistrationDTO request)
         {
