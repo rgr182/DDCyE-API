@@ -88,11 +88,11 @@ $(document).ready(function () {
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify(userData),
-            success: (response) => {
+            success: () => {
                 $("#successMessage").text("Registro realizado con éxito!").show();
                 $('#errorMessage').hide();
             },
-            error: function (xhr, status, error) {
+            error: function (xhr) {
                 var errorMessage = xhr.responseJSON?.error || 'Error al hacer el registro de usuario';
                 showErrorMessage(errorMessage);
             }
