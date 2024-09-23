@@ -30,7 +30,7 @@ function populateDateDropdowns() {
         $('#dayOptions').append(`<li><a class="dropdown-item" href="#" onclick="selectDateOption('dayDisplay', ${i})">${i}</a></li>`);
     }
 
-    months.forEach(function (month, index) {
+    months.forEach(function (month) {
         $('#monthOptions').append(`<li><a class="dropdown-item" href="#" onclick="selectDateOption('monthDisplay', '${month}')">${month}</a></li>`);
     });
 
