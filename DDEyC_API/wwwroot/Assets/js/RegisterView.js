@@ -1,5 +1,5 @@
 ﻿var selectedGender = null;
-const LOGINPAGE = "https://localhost:44347/LoginPage";
+
 const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
 const ERROR_MESSAGES = {
@@ -150,7 +150,9 @@ function registerUser(userData) {
             console.log('Registration successful', response);
             $("#successMessage").text("Registro realizado con éxito!").show();
             clearErrorMessages();
-            window.location.href = LOGINPAGE;
+
+            const redirectUrl = response.redirectUrl;
+                window.location.href = redirectUrl;
         },
         error: function (xhr, status, error) {
             console.log('Registration failed', xhr, status, error);
@@ -191,9 +193,5 @@ $(document).ready(function () {
     $('#registrationForm input').on('input', function() {
         console.log('Input changed, clearing errors');
         clearErrorMessages();
-    });
-
-    $(".back").on("click", function () {
-        window.location.href = LOGINPAGE;
     });
 });
