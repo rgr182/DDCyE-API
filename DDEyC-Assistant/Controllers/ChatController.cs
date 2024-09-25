@@ -1,9 +1,14 @@
+// File: DDEyC_Assistant/Controllers/ChatController.cs
+
 using Microsoft.AspNetCore.Mvc;
 using DDEyC_Assistant.Services.Interfaces;
 using DDEyC_Assistant.Models.DTOs;
+using DDEyC_Assistant.Attributes;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DDEyC_Assistant.Controllers
 {
+    
     [Route("api/[controller]")]
     [ApiController]
     public class ChatController : ControllerBase
@@ -18,6 +23,7 @@ namespace DDEyC_Assistant.Controllers
         }
 
         [HttpPost("StartChat")]
+        [RequireAuth]
         public async Task<IActionResult> StartChat()
         {
             try
@@ -33,6 +39,7 @@ namespace DDEyC_Assistant.Controllers
         }
 
         [HttpPost("Chat")]
+        [RequireAuth]
         public async Task<IActionResult> Chat([FromBody] ChatRequestDto chatRequest)
         {
             try

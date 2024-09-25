@@ -2,76 +2,82 @@ using DDEyC_Assistant.Data;
 using DDEyC_Assistant.Services;
 using DDEyC_Assistant.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenAI;
-using Swashbuckle.AspNetCore.Filters;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-//try to read MY_OPEN_AI_KEY environment variable
-string? openAiKey= Environment.GetEnvironmentVariable("MY_OPEN_AI_API_KEY");
+
+// OpenAI configuration
+string? openAiKey = Environment.GetEnvironmentVariable("MY_OPEN_AI_API_KEY");
 if (string.IsNullOrEmpty(openAiKey))
 {
     throw new Exception("Open AI key is not set");
 }
 builder.Services.AddSingleton(new OpenAIClient(openAiKey));
 
-// builder.Services.AddOpenAIService(settings => { settings.ApiKey = Environment.GetEnvironmentVariable("MY_OPEN_AI_API_KEY")??"";
-// settings.UseBeta = true; });
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Swagger configuration
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
-    {
-        In = ParameterLocation.Header,
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "DDEyC Assistant API", Version = "v1" });
 
-    });
-    options.OperationFilter<SecurityRequirementsOperationFilter>();
-});
-builder.Services.AddAuthentication().AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                builder.Configuration
-                .GetSection("AppSettings:Token")
-                .Value!)),
-        ValidateAudience = false,
-        ValidateIssuer = false,
-    };
+        Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
 });
+
+// Database configuration
 builder.Services.AddDbContext<DataContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
-builder.Services.AddCors(options =>
-    {
-        options.AddPolicy("AllowAllOrigins",
-            builder =>
-            {
-                builder.AllowAnyOrigin()
-                       .AllowAnyMethod()
-                       .AllowAnyHeader();
-            });
-    });
 
-// In Program.cs
+// CORS configuration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllOrigins",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyMethod()
+                   .AllowAnyHeader();
+        });
+});
+
+// Service registrations
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAssistantService, AssistantService>();
 builder.Services.AddScoped<IFormDataService, FormDataService>();
 
+// Logging and HttpClient
 builder.Services.AddLogging();
 builder.Services.AddHttpClient();
 
+// Add configuration for DDEyC API URL
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
 var app = builder.Build();
 
@@ -79,13 +85,14 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "DDEyC Assistant API V1");
+    });
 }
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAllOrigins");
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllers();
 
