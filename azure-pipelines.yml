@@ -13,37 +13,36 @@ steps:
 - task: DotNetCoreCLI@2
   inputs:
     command: 'restore'
-    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Updated path without double quotes
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'
 
 # Build the DDEyC_API project only
 - task: DotNetCoreCLI@2
   inputs:
     command: 'build'
-    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Updated path without double quotes
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'
     arguments: '--configuration Release'
 
 # Publish the DDEyC_API project to a temporary directory for deployment
 - task: DotNetCoreCLI@2
   inputs:
     command: 'publish'
-    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'  # Updated path without double quotes
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'
     publishWebProjects: true
     arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
     zipAfterPublish: true
 
-# Copy the published files to the remote server using SSH
-- task: CopyFilesOverSSH@0
+# Use PowerShell to copy files to the remote Windows server via SMB (if the folder is shared)
+- task: PowerShell@2
   inputs:
-    sshEndpoint: 'SSH Devops'  # Updated to the new SSH service in Azure DevOps
-    sourceFolder: '$(Build.ArtifactStagingDirectory)'  # Directory where the files were published
-    targetFolder: 'C:/inetpub/WebAPI'  # Target directory on the remote IIS server
-    cleanTargetFolder: false
+    targetType: 'inline'
+    script: |
+      $SourceFolder = "$(Build.ArtifactStagingDirectory)"
+      $TargetFolder = "\\your-server-name\C$\inetpub\WebAPI"  # Ruta UNC para copiar a una carpeta compartida en el servidor
+      Copy-Item -Path $SourceFolder\* -Destination $TargetFolder -Recurse -Force
 
-# Execute SSH commands on the remote server to restart IIS
-- task: SSH@0
+# Execute a PowerShell command to restart IIS on the remote Windows server
+- task: PowerShell@2
   inputs:
-    sshEndpoint: 'SSH Devops'  # Updated to the new SSH service in Azure DevOps
-    runOptions: 'inline'
-    inline: |
-      iisreset  # Command to restart IIS on the Windows server
-    failOnStdErr: true
+    targetType: 'inline'
+    script: |
+      Invoke-Command -ComputerName your-server-name -ScriptBlock {iisreset}
