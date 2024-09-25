@@ -39,10 +39,15 @@ steps:
       $SourceFolder = "$(Build.ArtifactStagingDirectory)"
       $TargetFolder = "C:\inetpub\WebAPI"
       
+      # Credenciales hardcodeadas
+      $Username = "Administrator"
+      $Password = "ch4ng3andcod3bruh" | ConvertTo-SecureString -AsPlainText -Force
+      $Credential = New-Object System.Management.Automation.PSCredential ($Username, $Password)
+      
       # Copiar archivos al servidor remoto
-      Invoke-Command -ComputerName "your-server-name" -ScriptBlock {
+      Invoke-Command -ComputerName "158.222.102.253" -Credential $Credential -ScriptBlock {
           param ($SourceFolder, $TargetFolder)
-          
+
           # Verificar si el directorio de destino existe, si no, crearlo
           if (-Not (Test-Path -Path $TargetFolder)) {
               New-Item -ItemType Directory -Path $TargetFolder
@@ -50,13 +55,18 @@ steps:
 
           # Copiar los archivos desde el directorio de origen al destino
           Copy-Item -Path "$SourceFolder\*" -Destination $TargetFolder -Recurse -Force
-      } -ArgumentList $SourceFolder, $TargetFolder -Credential (Get-Credential)
+      } -ArgumentList $SourceFolder, $TargetFolder
 
 # Execute a PowerShell command to restart IIS on the remote Windows server
 - task: PowerShell@2
   inputs:
     targetType: 'inline'
     script: |
-      Invoke-Command -ComputerName "your-server-name" -ScriptBlock {
+      $Username = "Administrator"
+      $Password = "ch4ng3andcod3bruh" | ConvertTo-SecureString -AsPlainText -Force
+      $Credential = New-Object System.Management.Automation.PSCredential ($Username, $Password)
+
+      # Reiniciar IIS en el servidor remoto
+      Invoke-Command -ComputerName "158.222.102.253" -Credential $Credential -ScriptBlock {
           iisreset
-      } -Credential (Get-Credential)
+      }
