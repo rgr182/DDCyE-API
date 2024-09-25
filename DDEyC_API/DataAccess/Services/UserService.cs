@@ -11,7 +11,7 @@ namespace DDEyC_API.DataAccess.Services
         Task<Users> GetUserByEmail(string email);
         Task<Users> Register(UserRegistrationDTO request);
         Task<Users> Login(string email, string password);
-        Task<string> VerifyExistingEmail(string email);
+        Task<bool> VerifyExistingEmail(string email);
     }
 
     public class UserService : IUserService
@@ -72,15 +72,23 @@ namespace DDEyC_API.DataAccess.Services
                 var existingUser = await _userRepository.GetUserByEmail(registrationDTO.Email);
                 if (existingUser != null)
                 {
-                    throw new Exception("An account with this email already exists.");
+                    throw new InvalidOperationException("EMAIL_ALREADY_REGISTERED");
+                }
+
+                if (string.IsNullOrWhiteSpace(registrationDTO.Password) || registrationDTO.Password.Length < 8)
+                {
+                    throw new ArgumentException("Password must be at least 8 characters long.");
                 }
 
                 string passwordHash = GeneratePasswordHash(registrationDTO.Password);
                 Users user = new Users
                 {
                     Name = registrationDTO.Name,
+                    LastName = registrationDTO.LastName,
                     Email = registrationDTO.Email,
                     Password = passwordHash,
+                    BirthDate = registrationDTO.BirthDate,
+                    Gender = registrationDTO.Gender
                 };
 
                 return await _userRepository.AddUser(user);
@@ -92,6 +100,21 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
+        public async Task<bool> VerifyExistingEmail(string email)
+        {
+            try
+            {
+                _logger.LogInformation("Verifying existing email: {Email}", email);
+                var existingUser = await _userRepository.GetUserByEmail(email);
+                _logger.LogInformation("Email exists: {EmailExists}", existingUser);
+                return existingUser != null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while verifying existing email");
+                throw;
+            }
+        }
         public async Task<Users> Login(string email, string password)
         {
             try
@@ -125,19 +148,7 @@ namespace DDEyC_API.DataAccess.Services
             }
         }
 
-        public async Task<string> VerifyExistingEmail(string email)
-        {
-            try
-            {
-                var existingUser = await _userRepository.GetUserByEmail(email);
-                return existingUser != null ? "Email already exists" : "Email available";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while verifying existing email");
-                throw;
-            }
-        }
+       
 
         #endregion
 

@@ -1,4 +1,5 @@
-﻿using DDEyC_API.DataAccess.Services;
+﻿using System.Net;
+using DDEyC_API.DataAccess.Services;
 using DDEyC_Auth.DataAccess.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +13,13 @@ namespace DDEyC.Controllers
     {
         private readonly IUserService _usersService;
         private readonly ILogger<UserController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public UserController(IUserService usersService, ILogger<UserController> logger)
+        public UserController(IUserService usersService, ILogger<UserController> logger, IConfiguration configuration)
         {
             _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         [HttpGet(Name = "GetAllUsers")]        
@@ -80,22 +83,32 @@ namespace DDEyC.Controllers
         {
             try
             {
-                // Verify if the email is already registered
-                var emailVerificationResult = await _usersService.VerifyExistingEmail(request.Email);
-                if (emailVerificationResult == "Email already exists")
+                var emailExists = await _usersService.VerifyExistingEmail(request.Email);
+                _logger.LogInformation("Email exists: {EmailExists}", emailExists);
+                if (emailExists)
                 {
-                    return BadRequest(new { message = "Registration failed", error = "Email already exists" });
+                    return Conflict(new { errorCode = "EMAIL_ALREADY_REGISTERED" });
                 }
 
-                // If the email is not registered, proceed with the registration
                 var user = await _usersService.Register(request);
-                return Ok(new { message = "Registration successful", user.Email });
+                var loginPageUrl = _configuration["urls:LoginPageUrl"];
+
+                return Ok(new 
+                { 
+                    message = "REGISTRATION_SUCCESSFUL",
+                    user.Email,
+                    redirectUrl = loginPageUrl
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { errorCode = "INVALID_INPUT", details = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while registering a user");
-                return BadRequest(new { message = "Registration failed", error = ex.Message });
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { errorCode = "REGISTRATION_FAILED" });
             }
-        }        
+        }    
     }
 }

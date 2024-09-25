@@ -1,0 +1,92 @@
+﻿.mainTitle {
+    background-color: #007bff;
+    height: 115px;
+}
+.UserInfo {
+    width: 45%;
+    min-height: 50px;
+}
+.dialogo {
+    width: 100%;
+    min-height: 50px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    border: 1px solid gray;
+    border-radius: 3px;
+}
+.birthdayButton{
+    width: 100%;
+    border: 1px solid gray;
+}
+    .birthdayButton:hover {
+        background-color: #007bff;
+        color: white;
+    }
+#dayOptions, #monthOptions, #yearOptions {
+    max-height: 170px;
+    overflow-y: auto;
+}
+.gender {
+    width: 100%;
+    min-height: 50px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    border: 1px solid gray;
+    border-radius: 3px;
+}
+    .gender:hover {
+        background-color: #007bff;
+        color: white;
+    }
+    .gender:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+    .gender.selected {
+        font-weight:bold;
+        border: 2px solid #007bff;
+    }
+.RegisterButton, .back {
+    width: 45%;
+    min-width: 100px;
+    min-height: 50px;
+}
+    .RegisterButton:active, .back:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+#logo {
+    width: 50%;
+}
+@media (width <= 600px) {
+    .mainTitle {
+        background-color: #007bff;
+        height: 80px;
+    }
+        .mainTitle h1 {
+            font-size: 30px;
+            margin: 0;
+        }
+        .mainTitle p{
+            margin:0;
+        }
+    .UserInfo {
+        width: 45%;
+        min-height: 40px;
+    }
+    .dialogo {
+        min-height: 40px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+    }
+    .adviceText{
+        font-size:12px;
+        margin:0;
+    }
+    .gender {
+        margin: 0;
+    }
+    #logo {
+        width: 75%;
+    }
+}
