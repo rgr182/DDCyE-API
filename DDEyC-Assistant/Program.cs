@@ -1,4 +1,5 @@
 using DDEyC_Assistant.Data;
+using DDEyC_Assistant.Repositories;
 using DDEyC_Assistant.Services;
 using DDEyC_Assistant.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -70,7 +71,7 @@ builder.Services.AddCors(options =>
 // Service registrations
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAssistantService, AssistantService>();
-builder.Services.AddScoped<IFormDataService, FormDataService>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
 
 // Logging and HttpClient
 builder.Services.AddLogging();

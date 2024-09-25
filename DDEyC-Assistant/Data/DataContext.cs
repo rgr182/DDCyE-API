@@ -5,19 +5,24 @@ namespace DDEyC_Assistant.Data
 {
     public class DataContext : DbContext
     {
-        public DataContext()
+        public DataContext(DbContextOptions<DataContext> options) : base(options) { }
+
+        public DbSet<UserThread> UserThreads { get; set; }
+        public DbSet<Message> Messages { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-        }
+            base.OnModelCreating(modelBuilder);
 
-        public DataContext(DbContextOptions<DataContext> options) : base(options)
-        {
+            modelBuilder.Entity<UserThread>()
+                .HasIndex(ut => new { ut.UserId, ut.IsActive })
+                .IsUnique()
+                .HasFilter("IsActive = 1");
 
-
-        }
-
-            protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.UserThread)
+                .WithMany()
+                .HasForeignKey(m => m.UserThreadId);
         }
     }
 }
