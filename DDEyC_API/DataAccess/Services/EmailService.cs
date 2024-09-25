@@ -57,7 +57,7 @@ namespace DDEyC_API.DataAccess.Services
                     var view = AlternateView.CreateAlternateViewFromString(mailMessage.Body, null, MediaTypeNames.Text.Html);
                     view.LinkedResources.Add(linkedResource);
                     mailMessage.AlternateViews.Add(view);
-                }
+                }             
 
                 await smtpClient.SendMailAsync(mailMessage);
                 return true;

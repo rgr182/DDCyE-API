@@ -168,7 +168,7 @@ namespace DDEyC.Controllers
             else
             {
                 ViewData["Error"] = "Invalid or expired password recovery token.";
-                return View("Error");
+                return View("Error");           
             }
         }
 

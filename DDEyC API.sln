@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cron-DDEyC", "Cron-DDEyC\Cr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DDEyC-Assistant", "DDEyC-Assistant\DDEyC-Assistant.csproj", "{0C174F7B-4414-4258-ACFC-210564F98A23}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{32229573-DEC3-46C3-93CD-21EB2DC7CFE8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonUtils", "CommonUtils\CommonUtils.csproj", "{17727A67-3C65-41CB-B0A7-7FDBAFFF3B1E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,9 +38,18 @@ Global
 		{0C174F7B-4414-4258-ACFC-210564F98A23}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0C174F7B-4414-4258-ACFC-210564F98A23}.Testing|Any CPU.ActiveCfg = Debug|Any CPU
 		{0C174F7B-4414-4258-ACFC-210564F98A23}.Testing|Any CPU.Build.0 = Debug|Any CPU
+		{17727A67-3C65-41CB-B0A7-7FDBAFFF3B1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17727A67-3C65-41CB-B0A7-7FDBAFFF3B1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17727A67-3C65-41CB-B0A7-7FDBAFFF3B1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17727A67-3C65-41CB-B0A7-7FDBAFFF3B1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17727A67-3C65-41CB-B0A7-7FDBAFFF3B1E}.Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{17727A67-3C65-41CB-B0A7-7FDBAFFF3B1E}.Testing|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{17727A67-3C65-41CB-B0A7-7FDBAFFF3B1E} = {32229573-DEC3-46C3-93CD-21EB2DC7CFE8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7BA4724E-4224-4F93-9711-CF8D1252FCC3}
