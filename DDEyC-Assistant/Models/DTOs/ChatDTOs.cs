@@ -19,17 +19,4 @@ namespace DDEyC_Assistant.Models.DTOs
         public string Response { get; set; }
     }
 
-    public class MessageDto
-    {
-        public string Content { get; set; }
-        public string Role { get; set; }
-        public DateTime Timestamp { get; set; }
-    }
-    public class UserThreadDto
-    {
-        public int Id { get; set; }
-        public string ThreadId { get; set; }
-        public DateTime LastUsed { get; set; }
-        public bool IsActive { get; set; }
-    }
 }
