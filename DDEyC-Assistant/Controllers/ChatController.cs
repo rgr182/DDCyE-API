@@ -9,7 +9,6 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace DDEyC_Assistant.Controllers
 {
-
     [Route("api/[controller]")]
     [ApiController]
     public class ChatController : ControllerBase

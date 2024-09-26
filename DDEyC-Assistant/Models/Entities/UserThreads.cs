@@ -13,6 +13,4 @@ namespace DDEyC_Assistant.Models
         public DateTime LastUsed { get; set; }
         public bool IsActive { get; set; }
     }
-
-    
 }
