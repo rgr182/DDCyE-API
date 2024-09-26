@@ -6,6 +6,5 @@ public class MessageDto
         public string Role { get; set; }
         public DateTime Timestamp { get; set; }
     }
-
  }
      

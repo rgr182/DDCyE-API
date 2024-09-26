@@ -18,5 +18,4 @@ namespace DDEyC_Assistant.Models.DTOs
         public string ThreadId { get; set; }
         public string Response { get; set; }
     }
-
 }
