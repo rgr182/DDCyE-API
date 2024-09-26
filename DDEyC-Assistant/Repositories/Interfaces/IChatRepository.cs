@@ -14,7 +14,5 @@ namespace DDEyC_Assistant.Repositories
         Task<List<UserThread>> GetAllThreadsForUser(int userId);
         Task<UserThread> GetThreadById(int threadId);
         Task<List<UserThread>> GetRecentThreadsForUser(int userId, int count);
-
-
     }
 }

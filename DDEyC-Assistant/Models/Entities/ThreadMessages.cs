@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DDEyC_Assistant.Models
 {
-
     public class Message
     {
         [Key]

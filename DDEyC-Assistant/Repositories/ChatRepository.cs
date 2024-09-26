@@ -100,6 +100,5 @@ namespace DDEyC_Assistant.Repositories
                 .Take(count)
                 .ToListAsync();
         }
-
     }
 }
