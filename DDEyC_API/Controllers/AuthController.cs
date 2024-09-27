@@ -56,6 +56,36 @@ namespace DDEyC.Controllers
             }
         }
 
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                // Obtener el token del encabezado de autorización
+                var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    return BadRequest("Token is missing.");
+                }
+
+                // Llamar al método EndSessionByToken del servicio
+                var result = await _sessionService.EndSessionByToken(token);
+                if (result)
+                {
+                    return Ok("Session ended successfully.");
+                }
+                else
+                {
+                    return BadRequest("Unable to end session.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while ending session with token.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
         /// <summary>
         /// Retrieves a session by ID.
         /// </summary>

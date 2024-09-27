@@ -1,5 +1,6 @@
 ﻿using DDEyC_API.DataAccess.Context;
 using DDEyC_Auth.DataAccess.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace DDEyC_API.DataAccess.Repositories
 {
@@ -7,7 +8,8 @@ namespace DDEyC_API.DataAccess.Repositories
     {
         Task<Sessions> GetSession(int sessionId);
         Task<Sessions> AddSession(Sessions session);
-        Task DeleteSession(int sessionId);        
+        Task DeleteSession(int sessionId);
+        Task<Sessions> GetSessionByToken(string authToken);
     }
 
     public class SessionRepository : ISessionRepository
@@ -65,6 +67,18 @@ namespace DDEyC_API.DataAccess.Repositories
                 _logger.LogError(ex, "Error while retrieving session with ID {SessionId}", sessionId);
                 throw;
             }
-        }       
+        }
+        public async Task<Sessions> GetSessionByToken(string authToken)
+        {
+            try
+            {
+                return await _authContext.Sessions.FirstOrDefaultAsync(s => s.UserToken == authToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while retrieving session with token {authToken}", authToken);
+                throw;
+            }
+        }
     }
 }
