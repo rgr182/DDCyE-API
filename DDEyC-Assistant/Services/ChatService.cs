@@ -49,7 +49,12 @@ namespace DDEyC_Assistant.Services
                 {
                     ThreadId = activeThread.ThreadId,
                     WelcomeMessage = lastMessage?.Content ?? "Welcome back! Continuing your previous conversation.",
-                    Messages = messages.Select(m => new MessageDto { Content = m.Content, Role = m.Role }).ToList()
+                    Messages = messages.Select(m => new MessageDto
+                    {
+                        Content = m.Content,
+                        Role = m.Role,
+                        Timestamp = m.Timestamp  // Use the timestamp from the database
+                    }).ToList()
                 };
             }
 
