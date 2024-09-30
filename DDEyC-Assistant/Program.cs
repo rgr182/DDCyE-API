@@ -72,7 +72,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAssistantService, AssistantService>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
-
+builder.Services.AddHostedService<MessageCleanupService>();
 // Logging and HttpClient
 builder.Services.AddLogging();
 builder.Services.AddHttpClient();
