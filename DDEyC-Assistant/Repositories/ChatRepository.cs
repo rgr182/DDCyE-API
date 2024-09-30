@@ -2,7 +2,6 @@ using DDEyC_Assistant.Data;
 using DDEyC_Assistant.Models;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace DDEyC_Assistant.Repositories
 {
     public class ChatRepository : IChatRepository
@@ -77,6 +76,7 @@ namespace DDEyC_Assistant.Repositories
             _context.Messages.Add(message);
             await _context.SaveChangesAsync();
         }
+
         public async Task<List<UserThread>> GetAllThreadsForUser(int userId)
         {
             return await _context.UserThreads
@@ -90,8 +90,6 @@ namespace DDEyC_Assistant.Repositories
             return await _context.UserThreads.FindAsync(threadId);
         }
 
-
-
         public async Task<List<UserThread>> GetRecentThreadsForUser(int userId, int count)
         {
             return await _context.UserThreads
@@ -99,6 +97,17 @@ namespace DDEyC_Assistant.Repositories
                 .OrderByDescending(ut => ut.LastUsed)
                 .Take(count)
                 .ToListAsync();
+        }
+
+        public async Task DeleteOldMessages(TimeSpan retentionPeriod)
+        {
+            var cutoffDate = DateTime.UtcNow.Subtract(retentionPeriod);
+            var oldMessages = await _context.Messages
+                .Where(m => m.Timestamp < cutoffDate)
+                .ToListAsync();
+
+            _context.Messages.RemoveRange(oldMessages);
+            await _context.SaveChangesAsync();
         }
     }
 }

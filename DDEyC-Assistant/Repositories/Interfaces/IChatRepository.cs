@@ -1,5 +1,4 @@
 using DDEyC_Assistant.Models;
-using DDEyC_Assistant.Models.DTOs;
 
 namespace DDEyC_Assistant.Repositories
 {
@@ -14,5 +13,6 @@ namespace DDEyC_Assistant.Repositories
         Task<List<UserThread>> GetAllThreadsForUser(int userId);
         Task<UserThread> GetThreadById(int threadId);
         Task<List<UserThread>> GetRecentThreadsForUser(int userId, int count);
+        Task DeleteOldMessages(TimeSpan retentionPeriod);
     }
 }
