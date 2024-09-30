@@ -8,6 +8,7 @@ namespace DDEyC_API.DataAccess.Services
     {
         Task<Sessions> SaveSession(Users user);
         Task<bool> EndSession(int sessionId);
+        Task<bool> EndSessionByToken(string authToken);
         Task<Sessions> GetSession(int sessionId);
         Task<Sessions> ValidateSession(string token);
     }
@@ -61,7 +62,25 @@ namespace DDEyC_API.DataAccess.Services
                 return false;
             }
         }
-
+        public async Task<bool> EndSessionByToken(string authToken)
+        {
+            try
+            {
+                // Buscar la sesión por el token de usuario
+                var session = await _sessionRepository.GetSessionByToken(authToken);
+                if (session != null)
+                {
+                    await _sessionRepository.DeleteSession(session.SessionId);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while ending session with token {authToken}", authToken);
+                return false;
+            }
+        }
         public async Task<Sessions> GetSession(int sessionId)
         {
             try
@@ -103,5 +122,3 @@ namespace DDEyC_API.DataAccess.Services
         }
     }
 }
-
-

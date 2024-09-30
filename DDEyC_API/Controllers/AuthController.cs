@@ -60,6 +60,36 @@ namespace DDEyC.Controllers
             }
         }
 
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                // Obtener el token del encabezado de autorización
+                var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    return BadRequest("Token is missing.");
+                }
+
+                // Llamar al método EndSessionByToken del servicio
+                var result = await _sessionService.EndSessionByToken(token);
+                if (result)
+                {
+                    return Ok("Session ended successfully.");
+                }
+                else
+                {
+                    return BadRequest("Unable to end session.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while ending session with token.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
         /// <summary>
         /// Retrieves a session by ID.
         /// </summary>
@@ -173,8 +203,8 @@ namespace DDEyC.Controllers
 
             if (isValidToken)
             {
-                ViewBag.Token = token;  // Pass the token to the view.
-                return View("PasswordReset");  // Load the password reset view.
+                ViewBag.Token = token;
+                return View("PasswordReset");
             }
             else
             {
@@ -215,6 +245,38 @@ namespace DDEyC.Controllers
             }
         }
 
+        [HttpGet("checkSession")]
+        public async Task<IActionResult> CheckSession()
+        {
+            try
+            {
+                // Obtener el token del encabezado de autorización
+                var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    return Unauthorized("Token is missing.");
+                }
+
+                // Validar si la sesión es válida usando el método ValidateSession del servicio
+                var session = await _sessionService.ValidateSession();
+
+                // Comparar la fecha de expiración con la fecha actual
+                if (session.ExpirationDate > DateTime.UtcNow)
+                {
+                    return Ok(new { IsSessionValid = true });
+                }
+                else
+                {
+                    return Ok(new { IsSessionValid = false });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while checking session validity.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
         #endregion
     }
 }
