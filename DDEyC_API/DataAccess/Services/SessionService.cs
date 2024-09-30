@@ -10,7 +10,7 @@ namespace DDEyC_API.DataAccess.Services
         Task<bool> EndSession(int sessionId);
         Task<bool> EndSessionByToken(string authToken);
         Task<Sessions> GetSession(int sessionId);
-        Task<Sessions> ValidateSession();
+        Task<Sessions> ValidateSession(string token);
     }
 
     public class SessionService : ISessionService
@@ -98,16 +98,14 @@ namespace DDEyC_API.DataAccess.Services
         /// Validates the session by checking the JWT token.
         /// </summary>
         /// <returns>An instance of Sessions with the user ID, token, expiration date, and creation date if the session is valid.</returns>
-        public async Task<Sessions> ValidateSession()
+        public async Task<Sessions> ValidateSession(string token)
         {
             try
             {
-                var token = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-
-                // Retrieve user ID, token, expiration date, and creation date from the JWT token
+                // userId, token, expirationDate y creationDate del token JWT
                 var (userId, _, expirationDate, creationDate) = _authUtils.GetUserFromToken(token);
 
-                // Return an instance of Sessions with the user ID, token, expiration date, and creation date
+               
                 return new Sessions
                 {
                     UserId = userId,
@@ -124,4 +122,3 @@ namespace DDEyC_API.DataAccess.Services
         }
     }
 }
- 

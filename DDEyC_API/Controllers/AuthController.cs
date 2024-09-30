@@ -2,6 +2,7 @@
 using DDEyC_API.DataAccess.Services;
 using Microsoft.AspNetCore.Authorization;
 using DDEyC_API.DataAccess.Models.DTOs;
+using Microsoft.AspNetCore.Http;
 
 namespace DDEyC.Controllers
 {
@@ -13,16 +14,19 @@ namespace DDEyC.Controllers
         private readonly ILogger<AuthController> _logger;
         private readonly ISessionService _sessionService;
         private readonly IUserService _usersService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AuthController(IPasswordRecoveryRequestService passwordRecoveryRequestService,
                               ILogger<AuthController> logger,
                               ISessionService sessionService,
-                              IUserService usersService)
+                              IUserService usersService,
+                              IHttpContextAccessor httpContextAccessor)
         {
             _passwordRecoveryRequestService = passwordRecoveryRequestService;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
             _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
+            _httpContextAccessor=httpContextAccessor;
         }
 
         #region API Endpoints
@@ -120,16 +124,16 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var session = await _sessionService.ValidateSession();
+                var token = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (string.IsNullOrEmpty(token))
+                {
+                    return Unauthorized("No token provided");
+                }
 
-                // Calculate remaining minutes of the token
+                var session = await _sessionService.ValidateSession(token); 
+
                 var remainingMinutes = (int)(session.ExpirationDate - DateTime.UtcNow).TotalMinutes;
-
-                // Construct the message
-                var message = $"Token expires in {remainingMinutes} minute(s).";
-
-                // Return Ok response with the session and message
-                return Ok(new { Session = session, Message = message });
+                return Ok(new { Session = session, Message = $"Token expires in {remainingMinutes} minute(s)." });
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -143,7 +147,8 @@ namespace DDEyC.Controllers
             }
         }
 
-        //vista de ingresar email
+
+        //email
         [AllowAnonymous]
         [HttpGet("passwordRecoveryView")]
         public IActionResult PasswordRecoveryView()
