@@ -48,7 +48,7 @@ namespace DDEyC_Assistant.Services
                 return new ChatStartResultDto
                 {
                     ThreadId = activeThread.ThreadId,
-                    WelcomeMessage = lastMessage?.Content ?? "Welcome back! Continuing your previous conversation.",
+                    WelcomeMessage = lastMessage?.Content ?? "Bienvenido de vuelta, continuemos tu anterior conversación.",
                     Messages = messages.Select(m => new MessageDto
                     {
                         Content = m.Content,
@@ -66,7 +66,8 @@ namespace DDEyC_Assistant.Services
             var newThread = await _assistantService.CreateThreadAsync();
             var userThread = await _chatRepository.CreateThreadForUser(userId, newThread.Id);
 
-            const string welcomeMessage = "Hello! How can I assist you today?";
+            const string defaultWelcomeMessage = "Hola! soy un chatbot desarrollado para ayudarte a buscar empleo, ¿Qué necesitas?";
+            string welcomeMessage = _configuration["Appsettings:WelcomeMessage"] ?? defaultWelcomeMessage;
             await _chatRepository.AddMessage(userThread.Id, welcomeMessage, "assistant");
 
             return new ChatStartResultDto
