@@ -259,7 +259,7 @@ namespace DDEyC.Controllers
                 }
 
                 // Validar si la sesión es válida usando el método ValidateSession del servicio
-                var session = await _sessionService.ValidateSession();
+                var session = await _sessionService.ValidateSession(token);
 
                 // Comparar la fecha de expiración con la fecha actual
                 if (session.ExpirationDate > DateTime.UtcNow)
