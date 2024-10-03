@@ -86,10 +86,10 @@ namespace DDEyC_Assistant.Services
                 throw new InvalidOperationException("Invalid thread for this user.");
             }
 
+            await _assistantService.AddMessageToThreadAsync(chatRequest.ThreadId, chatRequest.UserMessage, MessageRole.User);
             await _chatRepository.UpdateThreadLastUsed(activeThread.Id);
             await _chatRepository.AddMessage(activeThread.Id, chatRequest.UserMessage, "user");
 
-            await _assistantService.AddMessageToThreadAsync(chatRequest.ThreadId, chatRequest.UserMessage, MessageRole.User);
 
             var run = await _assistantService.CreateAndRunAssistantAsync(chatRequest.ThreadId);
 
