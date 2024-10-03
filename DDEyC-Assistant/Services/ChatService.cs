@@ -68,13 +68,13 @@ namespace DDEyC_Assistant.Services
 
             const string defaultWelcomeMessage = "Hola! soy un chatbot desarrollado para ayudarte a buscar empleo, ¿Qué necesitas?";
             string welcomeMessage = _configuration["Appsettings:WelcomeMessage"] ?? defaultWelcomeMessage;
+            await _assistantService.AddMessageToThreadAsync(newThread.Id, welcomeMessage, MessageRole.Assistant);
             await _chatRepository.AddMessage(userThread.Id, welcomeMessage, "assistant");
-
             return new ChatStartResultDto
             {
                 ThreadId = newThread.Id,
                 WelcomeMessage = welcomeMessage,
-                Messages = new List<MessageDto> { new MessageDto { Content = welcomeMessage, Role = "assistant" } }
+                Messages = new List<MessageDto> { new MessageDto { Content = welcomeMessage, Role = "assistant", Timestamp = DateTime.UtcNow } }
             };
         }
 
