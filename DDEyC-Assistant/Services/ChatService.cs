@@ -68,13 +68,13 @@ namespace DDEyC_Assistant.Services
 
             const string defaultWelcomeMessage = "Hola! soy un chatbot desarrollado para ayudarte a buscar empleo, ¿Qué necesitas?";
             string welcomeMessage = _configuration["Appsettings:WelcomeMessage"] ?? defaultWelcomeMessage;
+            await _assistantService.AddMessageToThreadAsync(newThread.Id, welcomeMessage, MessageRole.Assistant);
             await _chatRepository.AddMessage(userThread.Id, welcomeMessage, "assistant");
-
             return new ChatStartResultDto
             {
                 ThreadId = newThread.Id,
                 WelcomeMessage = welcomeMessage,
-                Messages = new List<MessageDto> { new MessageDto { Content = welcomeMessage, Role = "assistant" } }
+                Messages = new List<MessageDto> { new MessageDto { Content = welcomeMessage, Role = "assistant", Timestamp = DateTime.UtcNow } }
             };
         }
 
@@ -86,10 +86,10 @@ namespace DDEyC_Assistant.Services
                 throw new InvalidOperationException("Invalid thread for this user.");
             }
 
+            await _assistantService.AddMessageToThreadAsync(chatRequest.ThreadId, chatRequest.UserMessage, MessageRole.User);
             await _chatRepository.UpdateThreadLastUsed(activeThread.Id);
             await _chatRepository.AddMessage(activeThread.Id, chatRequest.UserMessage, "user");
 
-            await _assistantService.AddMessageToThreadAsync(chatRequest.ThreadId, chatRequest.UserMessage, MessageRole.User);
 
             var run = await _assistantService.CreateAndRunAssistantAsync(chatRequest.ThreadId);
 
