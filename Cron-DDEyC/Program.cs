@@ -29,7 +29,8 @@ namespace Cron_BolsaDeTrabajo
 
 #if TESTING
             // Execute testing method if in testing profile
-            cronService.TestCoreSignalAsync().Wait();
+            //cronService.TestCoreSignalAsync().Wait();
+            cronService.ExecuteTaskAsync().Wait();
 #else
             // Start the Cron Service
             cronService.StartAsync().Wait();

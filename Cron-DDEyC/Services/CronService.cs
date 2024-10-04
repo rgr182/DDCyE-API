@@ -3,6 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Cron_BolsaDeTrabajo.Infrastructure;
 using NCrontab;
+using System.Text.Json; 
 
 namespace Cron_BolsaDeTrabajo.Services
 {
@@ -10,6 +11,8 @@ namespace Cron_BolsaDeTrabajo.Services
     {
         Task StartAsync();
         Task TestCoreSignalAsync();
+
+        Task ExecuteTaskAsync();
     }
 
     public class CronService : ICronService
@@ -117,45 +120,53 @@ namespace Cron_BolsaDeTrabajo.Services
             }
         }
 
-        private async Task ExecuteTaskAsync()
+        public async Task ExecuteTaskAsync()
         {
             Console.WriteLine($"Executing task at {DateTime.Now}");
 
             try
             {
-                List<int> jobIds = await _apiService.FetchJobIdsAsync();
-                int maxCollects = int.Parse(_configuration["Api:MaxCollects"]);
-
-                for (int i = 0; i < Math.Min(jobIds.Count, maxCollects); i++)
+                // Cargar IDs desde el archivo JSON local usando System.Text.Json
+                string jsonFilePath = Path.Combine(AppContext.BaseDirectory, "JsonFiles", "JsonRaul.json");
+                if (File.Exists(jsonFilePath))
                 {
-                    int jobId = jobIds[i];
-                    string jobDetails = await _apiService.FetchJobDetailsAsync(jobId);
+                    var jsonContent = await File.ReadAllTextAsync(jsonFilePath);
+                    var jobData = JsonSerializer.Deserialize<JobIdsContainer>(jsonContent);
+                    List<int> jobIds = jobData?.filtered_job_ids ?? new List<int>();
 
-                    if (jobDetails != null)
+                    int maxCollects = int.Parse(_configuration["Api:MaxCollects"]);
+
+                    for (int i = 0; i < Math.Min(jobIds.Count, maxCollects); i++)
                     {
-                        Console.WriteLine($"Job ID {jobId} details fetched, saving to MongoDB...");
-                        var document = BsonDocument.Parse(jobDetails);
+                        int jobId = jobIds[i];
+                        string jobDetails = await _apiService.FetchJobDetailsAsync(jobId);
 
-                        try
+                        if (jobDetails != null)
                         {
-                            await _ofertasLaboralesCollection.InsertOneAsync(document);
-                            Console.WriteLine($"Job ID {jobId} details saved.");
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine($"MongoDB error while saving details for Job ID {jobId}: {e.Message}");
+                            Console.WriteLine($"Job ID {jobId} details fetched, saving to MongoDB...");
+                            var document = BsonDocument.Parse(jobDetails);
+
+                            try
+                            {
+                                await _ofertasLaboralesCollection.InsertOneAsync(document);
+                                Console.WriteLine($"Job ID {jobId} details saved.");
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine($"MongoDB error while saving details for Job ID {jobId}: {e.Message}");
+                            }
                         }
                     }
+                }
+                else
+                {
+                    Console.WriteLine($"Error: JSON file {jsonFilePath} not found.");
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine($"Unexpected error during task execution: {e.Message}");
             }
-
-            // Reset the timer for the next run according to the cron expression
-            TimeSpan timeUntilNextRun = CalculateTimeUntilNextRun(_cronExpression);
-            _timer.Change(timeUntilNextRun, Timeout.InfiniteTimeSpan);
         }
 
         private TimeSpan CalculateTimeUntilNextRun(string cronExpression)
@@ -166,5 +177,11 @@ namespace Cron_BolsaDeTrabajo.Services
 
             return nextRun - now;
         }
+    }
+
+    // Clase para deserializar el archivo JSON
+    public class JobIdsContainer
+    {
+        public List<int> filtered_job_ids { get; set; }
     }
 }
