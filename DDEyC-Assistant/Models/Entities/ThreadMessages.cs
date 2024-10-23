@@ -12,6 +12,10 @@ namespace DDEyC_Assistant.Models
         [ForeignKey("UserThreadId")]
         public UserThread UserThread { get; set; }
         public string Content { get; set; }
+          /// <summary>
+        /// String representation of OpenAI.Assistants.MessageRole enum.
+        /// Common values: "User", "Assistant", "System"
+        /// </summary>
         public string Role { get; set; }
         public DateTime Timestamp { get; set; }
     }
