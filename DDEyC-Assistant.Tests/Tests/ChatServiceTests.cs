@@ -1,4 +1,3 @@
-// Services/ChatServiceTests.cs
 using DDEyC_Assistant.Models;
 using DDEyC_Assistant.Models.DTOs;
 using DDEyC_Assistant.Services.Interfaces;
@@ -25,7 +24,6 @@ namespace DDEyC_Assistant.Tests.Services
         private readonly IConfiguration _configuration;
         private readonly ChatService _chatService;
         private readonly Mock<IConversationLockManager> _mockConversationLockManager;
-
 
         public ChatServiceTests()
         {
@@ -56,8 +54,45 @@ namespace DDEyC_Assistant.Tests.Services
                 _mockHttpClient.Object,
                 _configuration,
                 _mockConversationLockManager.Object
-
             );
+
+            // Default setup: Lock acquisition succeeds
+            _mockConversationLockManager
+                .Setup(m => m.AcquireLock(It.IsAny<string>(), It.IsAny<TimeSpan>()))
+                .ReturnsAsync(true);
+
+            // Always setup conversation state to avoid conflicts
+            _mockChatRepository
+                .Setup(r => r.GetConversationState(It.IsAny<string>()))
+                .ReturnsAsync((ConversationStateEntity)null);
+        }
+
+        [Fact]
+        public async Task ProcessChatAsync_LockAcquisitionFails_ThrowsException()
+        {
+            // Arrange
+            var userThread = TestDataFactory.CreateUserThread();
+            _mockChatRepository.Setup(r => r.GetActiveThreadForUser(userThread.UserId))
+                .ReturnsAsync(userThread);
+
+            _mockConversationLockManager
+                .Setup(m => m.AcquireLock(userThread.ThreadId, It.IsAny<TimeSpan>()))
+                .ReturnsAsync(false);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ChatServiceException>(async () =>
+                await _chatService.ProcessChatAsync(new ChatRequestDto
+                {
+                    ThreadId = userThread.ThreadId,
+                    UserMessage = "test"
+                }, userThread.UserId));
+
+            Assert.Equal("CONVERSATION_BUSY", exception.ErrorCode);
+            
+            // Verify lock was never released since it was never acquired
+            _mockConversationLockManager.Verify(
+                m => m.ReleaseLock(It.IsAny<string>()),
+                Times.Never);
         }
 
         [Fact]
@@ -76,14 +111,6 @@ namespace DDEyC_Assistant.Tests.Services
                 MessageRole.User))
                 .ReturnsAsync(message);
 
-            // Setup AddMessageToThreadAsync to succeed
-            _mockAssistantService.Setup(s => s.AddMessageToThreadAsync(
-                userThread.ThreadId,
-                message.Content,
-                MessageRole.User))
-                .Returns(Task.CompletedTask);
-
-            // Setup CreateAndRunAssistantAsync to throw the rate limit error
             _mockAssistantService.Setup(s => s.CreateAndRunAssistantAsync(userThread.ThreadId))
                 .ThrowsAsync(TestExceptions.CreateRateLimitError());
 
@@ -97,6 +124,14 @@ namespace DDEyC_Assistant.Tests.Services
 
             Assert.Equal("RATE_LIMIT", exception.ErrorCode);
             _mockChatRepository.Verify(r => r.DeleteMessage(message.Id), Times.Once);
+            
+            // Verify lock was acquired and released
+            _mockConversationLockManager.Verify(
+                m => m.AcquireLock(userThread.ThreadId, It.IsAny<TimeSpan>()),
+                Times.Once);
+            _mockConversationLockManager.Verify(
+                m => m.ReleaseLock(userThread.ThreadId),
+                Times.Once);
         }
 
         [Fact]
@@ -115,14 +150,6 @@ namespace DDEyC_Assistant.Tests.Services
                 MessageRole.User))
                 .ReturnsAsync(message);
 
-            // Setup AddMessageToThreadAsync to succeed
-            _mockAssistantService.Setup(s => s.AddMessageToThreadAsync(
-                userThread.ThreadId,
-                message.Content,
-                MessageRole.User))
-                .Returns(Task.CompletedTask);
-
-            // Setup CreateAndRunAssistantAsync to throw the network error
             _mockAssistantService.Setup(s => s.CreateAndRunAssistantAsync(userThread.ThreadId))
                 .ThrowsAsync(TestExceptions.CreateNetworkError());
 
@@ -136,6 +163,14 @@ namespace DDEyC_Assistant.Tests.Services
 
             Assert.Equal("NETWORK_ERROR", exception.ErrorCode);
             _mockChatRepository.Verify(r => r.DeleteMessage(message.Id), Times.Once);
+            
+            // Verify lock was acquired and released
+            _mockConversationLockManager.Verify(
+                m => m.AcquireLock(userThread.ThreadId, It.IsAny<TimeSpan>()),
+                Times.Once);
+            _mockConversationLockManager.Verify(
+                m => m.ReleaseLock(userThread.ThreadId),
+                Times.Once);
         }
 
         [Fact]
@@ -171,6 +206,14 @@ namespace DDEyC_Assistant.Tests.Services
 
             Assert.Equal("TIMEOUT", exception.ErrorCode);
             _mockChatRepository.Verify(r => r.DeleteMessage(message.Id), Times.Once);
+            
+            // Verify lock management
+            _mockConversationLockManager.Verify(
+                m => m.AcquireLock(userThread.ThreadId, It.IsAny<TimeSpan>()),
+                Times.Once);
+            _mockConversationLockManager.Verify(
+                m => m.ReleaseLock(userThread.ThreadId),
+                Times.Once);
         }
 
         [Fact]
@@ -212,57 +255,41 @@ namespace DDEyC_Assistant.Tests.Services
 
             Assert.Equal("RUN_PROCESSING_FAILED", exception.ErrorCode);
             _mockChatRepository.Verify(r => r.DeleteMessage(message.Id), Times.Once);
+            
+            // Verify lock management
+            _mockConversationLockManager.Verify(
+                m => m.AcquireLock(userThread.ThreadId, It.IsAny<TimeSpan>()),
+                Times.Once);
+            _mockConversationLockManager.Verify(
+                m => m.ReleaseLock(userThread.ThreadId),
+                Times.Once);
         }
 
         [Fact]
-        public async Task ProcessChatAsync_FunctionCallSuccess_CompletesSuccessfully()
+        public async Task ProcessChatAsync_ConversationBusy_ThrowsException()
         {
             // Arrange
             var userThread = TestDataFactory.CreateUserThread();
-            var message = TestDataFactory.CreateMessage(userThreadId: userThread.Id);
-            var initialRun = TestDataFactory.CreateRunInProgress();
-            var actionRun = TestDataFactory.CreateRunRequiringAction();
-            var completedRun = TestDataFactory.CreateRunCompleted();
-            var assistantResponse = TestDataFactory.CreateAssistantMessageEntity("Here are the job listings");
-
+            
             _mockChatRepository.Setup(r => r.GetActiveThreadForUser(userThread.UserId))
                 .ReturnsAsync(userThread);
 
-            _mockChatRepository.Setup(r => r.AddMessage(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<MessageRole>()))
-                .ReturnsAsync(message);
-
-            _mockAssistantService.Setup(s => s.CreateAndRunAssistantAsync(userThread.ThreadId))
-                .ReturnsAsync(initialRun);
-            var callCount = 0;
-            _mockAssistantService.Setup(s => s.GetRunAsync(userThread.ThreadId, initialRun.Id))
-                .ReturnsAsync(() =>
-                {
-                    callCount++;
-                    if (callCount == 1) return actionRun;
-                    return completedRun;
+            _mockChatRepository.Setup(r => r.GetConversationState(userThread.ThreadId))
+                .ReturnsAsync(new ConversationStateEntity 
+                { 
+                    State = ConversationState.Processing,
+                    LastOperation = DateTime.UtcNow // Recent operation
                 });
 
-            _mockAssistantService.Setup(s => s.GetLatestMessageAsync(userThread.ThreadId))
-                .ReturnsAsync(assistantResponse);
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ChatServiceException>(async () =>
+                await _chatService.ProcessChatAsync(new ChatRequestDto
+                {
+                    ThreadId = userThread.ThreadId,
+                    UserMessage = "test"
+                }, userThread.UserId));
 
-            // Act
-            var result = await _chatService.ProcessChatAsync(new ChatRequestDto
-            {
-                ThreadId = userThread.ThreadId,
-                UserMessage = message.Content
-            }, userThread.UserId);
-
-            // Assert
-            Assert.Equal("success", result.Status);
-            Assert.Equal(assistantResponse.Content, result.Response);
-            Assert.Equal(userThread.ThreadId, result.ThreadId);
-
-            _mockAssistantService.Verify(s => s.SubmitToolOutputsToRunAsync(
-                userThread.ThreadId,
-                initialRun.Id,
-                actionRun.RequiredActions.First().ToolCallId,
-                It.IsAny<string>()),
-                Times.Once);
+            Assert.Equal("PROCESSING_IN_PROGRESS", exception.ErrorCode);
         }
 
         [Fact]
@@ -285,12 +312,83 @@ namespace DDEyC_Assistant.Tests.Services
 
             Assert.Equal("INVALID_THREAD", exception.ErrorCode);
 
-            // Verify no messages were added
+            // Verify no messages were added and no locks were acquired
             _mockChatRepository.Verify(r => r.AddMessage(
                 It.IsAny<int>(),
                 It.IsAny<string>(),
                 It.IsAny<MessageRole>()),
                 Times.Never);
+            _mockConversationLockManager.Verify(
+                m => m.AcquireLock(It.IsAny<string>(), It.IsAny<TimeSpan>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task ProcessChatAsync_FunctionCallSuccess_CompletesSuccessfully()
+        {
+            // Arrange
+            var userThread = TestDataFactory.CreateUserThread();
+            var message = TestDataFactory.CreateMessage(userThreadId: userThread.Id);
+            var initialRun = TestDataFactory.CreateRunInProgress();
+            var actionRun = TestDataFactory.CreateRunRequiringAction();
+            var completedRun = TestDataFactory.CreateRunCompleted();
+            var assistantResponse = TestDataFactory.CreateAssistantMessageEntity("Here are the job listings");
+
+            _mockChatRepository.Setup(r => r.GetActiveThreadForUser(userThread.UserId))
+                .ReturnsAsync(userThread);
+
+            _mockChatRepository.Setup(r => r.AddMessage(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<MessageRole>()))
+                .ReturnsAsync(message);
+
+            _mockAssistantService.Setup(s => s.CreateAndRunAssistantAsync(userThread.ThreadId))
+                .ReturnsAsync(initialRun);
+
+            var callCount = 0;
+            _mockAssistantService.Setup(s => s.GetRunAsync(userThread.ThreadId, initialRun.Id))
+                .ReturnsAsync(() =>
+                {
+                    callCount++;
+                    if (callCount == 1) return actionRun;
+                    return completedRun;
+                });
+
+            _mockAssistantService.Setup(s => s.GetLatestMessageAsync(userThread.ThreadId))
+                .ReturnsAsync(assistantResponse);
+
+            // Act
+            var result = await _chatService.ProcessChatAsync(new ChatRequestDto
+            {
+              ThreadId = userThread.ThreadId,
+                UserMessage = message.Content
+            }, userThread.UserId);
+
+            // Assert
+            Assert.Equal("success", result.Status);
+            Assert.Equal(assistantResponse.Content, result.Response);
+            Assert.Equal(userThread.ThreadId, result.ThreadId);
+
+            // Verify lock management
+            _mockConversationLockManager.Verify(
+                m => m.AcquireLock(userThread.ThreadId, It.IsAny<TimeSpan>()),
+                Times.Once);
+            _mockConversationLockManager.Verify(
+                m => m.ReleaseLock(userThread.ThreadId),
+                Times.Once);
+
+            // Verify conversation state management
+            _mockChatRepository.Verify(
+                r => r.UpdateConversationState(
+                    userThread.ThreadId,
+                    ConversationState.Processing,
+                    It.IsAny<string>()),
+                Times.AtLeastOnce);
+            
+            _mockChatRepository.Verify(
+                r => r.UpdateConversationState(
+                    userThread.ThreadId,
+                    ConversationState.Idle,
+                    null),
+                Times.Once);
         }
 
         [Fact]
@@ -331,6 +429,14 @@ namespace DDEyC_Assistant.Tests.Services
             Assert.Single(result.Messages);
             Assert.Equal(welcomeMessage, result.Messages[0].Content);
             Assert.Equal(MessageRole.Assistant.ToString(), result.Messages[0].Role);
+
+            // No locks should be used for starting a new chat
+            _mockConversationLockManager.Verify(
+                m => m.AcquireLock(It.IsAny<string>(), It.IsAny<TimeSpan>()),
+                Times.Never);
+            _mockConversationLockManager.Verify(
+                m => m.ReleaseLock(It.IsAny<string>()),
+                Times.Never);
         }
 
         [Fact]
@@ -367,6 +473,19 @@ namespace DDEyC_Assistant.Tests.Services
             Assert.Equal(existingMessages.Count, result.Messages.Count);
             Assert.Equal(existingMessages[0].Content, result.Messages[0].Content);
             Assert.Equal(existingMessages[0].Role, result.Messages[0].Role);
+
+            // No locks should be used for resuming an existing thread
+            _mockConversationLockManager.Verify(
+                m => m.AcquireLock(It.IsAny<string>(), It.IsAny<TimeSpan>()),
+                Times.Never);
+            _mockConversationLockManager.Verify(
+                m => m.ReleaseLock(It.IsAny<string>()),
+                Times.Never);
+            
+            // Verify thread is marked as used
+            _mockChatRepository.Verify(
+                r => r.UpdateThreadLastUsed(existingThread.Id),
+                Times.Once);
         }
     }
 }
