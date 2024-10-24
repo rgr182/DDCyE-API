@@ -24,6 +24,8 @@ namespace DDEyC_Assistant.Tests.Services
         private readonly Mock<HttpClient> _mockHttpClient;
         private readonly IConfiguration _configuration;
         private readonly ChatService _chatService;
+        private readonly Mock<IConversationLockManager> _mockConversationLockManager;
+
 
         public ChatServiceTests()
         {
@@ -31,6 +33,7 @@ namespace DDEyC_Assistant.Tests.Services
             _mockChatRepository = new Mock<IChatRepository>();
             _mockLogger = new Mock<ILogger<ChatService>>();
             _mockHttpClient = new Mock<HttpClient>();
+            _mockConversationLockManager = new Mock<IConversationLockManager>();
 
             var configurationBuilder = new ConfigurationBuilder();
             var myConfiguration = new Dictionary<string, string>
@@ -51,7 +54,9 @@ namespace DDEyC_Assistant.Tests.Services
                 _mockChatRepository.Object,
                 _mockLogger.Object,
                 _mockHttpClient.Object,
-                _configuration
+                _configuration,
+                _mockConversationLockManager.Object
+
             );
         }
 

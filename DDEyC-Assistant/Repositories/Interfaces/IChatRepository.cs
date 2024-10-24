@@ -17,5 +17,7 @@ namespace DDEyC_Assistant.Repositories
         Task<bool> DeleteMessage(int messageId);
 
         Task DeleteOldMessages(TimeSpan retentionPeriod);
+        Task<ConversationStateEntity> GetConversationState(string conversationId);
+        Task UpdateConversationState(string conversationId, ConversationState state, string runId);
     }
 }
