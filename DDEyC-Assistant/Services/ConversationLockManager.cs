@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 namespace DDEyC_Assistant.Services{
-    
 public class ConversationLockManager : IConversationLockManager
     {
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _conversationLocks = new();
