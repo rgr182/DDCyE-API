@@ -3,26 +3,32 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DDEyC_Assistant.Data
 {
-    public class DataContext : DbContext
+   // DataContext.cs
+public class DataContext : DbContext
+{
+    public DataContext(DbContextOptions<DataContext> options) : base(options) { }
+
+    public DbSet<UserThread> UserThreads { get; set; }
+    public DbSet<Message> Messages { get; set; }
+    public DbSet<ConversationStateEntity> ConversationStates { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public DataContext(DbContextOptions<DataContext> options) : base(options) { }
+        base.OnModelCreating(modelBuilder);
 
-        public DbSet<UserThread> UserThreads { get; set; }
-        public DbSet<Message> Messages { get; set; }
+        modelBuilder.Entity<UserThread>()
+            .HasIndex(ut => new { ut.UserId, ut.IsActive })
+            .IsUnique()
+            .HasFilter("IsActive = 1");
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<Message>()
+            .HasOne(m => m.UserThread)
+            .WithMany()
+            .HasForeignKey(m => m.UserThreadId);
 
-            modelBuilder.Entity<UserThread>()
-                .HasIndex(ut => new { ut.UserId, ut.IsActive })
-                .IsUnique()
-                .HasFilter("IsActive = 1");
-
-            modelBuilder.Entity<Message>()
-                .HasOne(m => m.UserThread)
-                .WithMany()
-                .HasForeignKey(m => m.UserThreadId);
-        }
+        modelBuilder.Entity<ConversationStateEntity>()
+            .HasIndex(s => s.ConversationId)
+            .IsUnique();
     }
+}
 }

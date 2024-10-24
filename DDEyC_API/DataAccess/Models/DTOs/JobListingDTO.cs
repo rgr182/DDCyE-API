@@ -11,6 +11,6 @@ namespace DDEyC_API.Models.DTOs
         public string? EmploymentType { get; set; }
         public List<string>? JobFunctions { get; set; }
         public List<string>? Industries { get; set; }
-        public int Limit { get; set; } = 10; // Default limit
+        public int Limit { get; set; } = 5; // Default limit
     }
 }
