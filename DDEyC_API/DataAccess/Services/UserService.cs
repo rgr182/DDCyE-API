@@ -32,9 +32,7 @@ namespace DDEyC_API.DataAccess.Services
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _sessionRepository = sessionRepository ?? throw new ArgumentNullException(nameof(sessionRepository));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            var a = DateTime.Now;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));            
         }
 
         #endregion

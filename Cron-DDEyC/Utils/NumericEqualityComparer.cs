@@ -1,6 +1,6 @@
 ﻿namespace Cron_DDEyC.Utils
 {
-    public class LongEqualityComparer : IEqualityComparer<long>
+    public class NumericEqualityComparer : IEqualityComparer<long>
     {
         public bool Equals(long x, long y)
         {
@@ -20,7 +20,7 @@
         public static List<long> GetNewElements(this List<long> source, List<long> comparisonList)
         {
             // Use LongEqualityComparer to find elements in 'source' that are not in 'comparisonList'
-            return source.Where(x => !comparisonList.Contains(x, new LongEqualityComparer())).ToList();
+            return source.Where(x => !comparisonList.Contains(x, new NumericEqualityComparer())).ToList();
         }
     }
 }
