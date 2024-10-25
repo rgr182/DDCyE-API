@@ -128,11 +128,5 @@ namespace Cron_BolsaDeTrabajo.Services
 
             return nextRun - now;
         }
-    }
-
-    // Class to deserialize job IDs from a JSON file (not used anymore)
-    public class JobIdsContainer
-    {
-        public List<long> filtered_job_ids { get; set; }
-    }
+    }    
 }
