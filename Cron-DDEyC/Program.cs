@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Cron_BolsaDeTrabajo.Services;
 using Cron_BolsaDeTrabajo.Infrastructure;
+using System;
 
 namespace Cron_BolsaDeTrabajo
 {
@@ -23,6 +24,7 @@ namespace Cron_BolsaDeTrabajo
                 })
                 .AddSingleton<IApiService, ApiService>()
                 .AddSingleton<ICronService, CronService>()
+                .AddSingleton<ILinkedInJobService, LinkedInJobService>()  // <-- Nuevo servicio añadido aquí
                 .BuildServiceProvider();
 
             var cronService = serviceProvider.GetService<ICronService>();

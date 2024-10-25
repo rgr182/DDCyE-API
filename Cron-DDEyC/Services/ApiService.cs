@@ -11,7 +11,7 @@ namespace Cron_BolsaDeTrabajo.Services
 {
     public interface IApiService
     {
-        Task<List<int>> FetchJobIdsAsync();
+        Task<List<int>> FetchJobIdsFromDBAsync();
         Task<string> FetchJobDetailsAsync(int jobId);
     }
 
@@ -21,54 +21,50 @@ namespace Cron_BolsaDeTrabajo.Services
         private readonly string _baseUrl;
         private readonly string _bearerToken;
         private readonly IConfiguration _configuration;
+        private readonly ILinkedInJobService _linkedInJobService; // Nuevo servicio para MongoDB
 
-        public ApiService(IConfiguration configuration)
+        public ApiService(IConfiguration configuration, ILinkedInJobService linkedInJobService)
         {
             _httpClient = new HttpClient();
             _baseUrl = configuration["Api:BaseUrl"];
             _bearerToken = configuration["Api:BearerToken"];
             _configuration = configuration;
+            _linkedInJobService = linkedInJobService;
 
             // Set the bearer token for authorization
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _bearerToken);
         }
 
-        public async Task<List<int>> FetchJobIdsAsync()
+        public async Task<List<int>> FetchJobIdsFromDBAsync()
         {
             try
             {
-                string endpoint = $"{_baseUrl}/search/filter";
+                // Llama al servicio de MongoDB para obtener los IDs de LinkedIn
+                var jobIdsFromMongo = await _linkedInJobService.GetLinkedInJobIdsFromDBAsync();
 
-                var searchParams = new
+                // Convertir los IDs obtenidos de MongoDB a una lista de enteros, asumiendo que los IDs en Mongo son strings numéricos
+                var jobIds = new List<int>();
+                foreach (var id in jobIdsFromMongo)
                 {
-                    country = _configuration["SearchParams:Country"],
-                    application_active = bool.Parse(_configuration["SearchParams:ApplicationActive"]),
-                    deleted = bool.Parse(_configuration["SearchParams:Deleted"]),
-                    location = _configuration["SearchParams:Location"]
-                };
-
-                string json = JsonSerializer.Serialize(searchParams);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                HttpResponseMessage response = await _httpClient.PostAsync(endpoint, content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    string responseBody = await response.Content.ReadAsStringAsync();
-                    return JsonSerializer.Deserialize<List<int>>(responseBody);
+                    if (int.TryParse(id, out int parsedId))
+                    {
+                        jobIds.Add(parsedId);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Invalid ID format: {id}");
+                    }
                 }
-                else
-                {
-                    Console.WriteLine($"Error fetching job IDs: {response.StatusCode}");
-                }
+
+                return jobIds;
             }
             catch (HttpRequestException e)
             {
-                Console.WriteLine($"HTTP Request error while fetching job IDs: {e.Message}");
+                Console.WriteLine($"HTTP Request error while fetching job IDs from MongoDB: {e.Message}");
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Unexpected error while fetching job IDs: {e.Message}");
+                Console.WriteLine($"Unexpected error while fetching job IDs from MongoDB: {e.Message}");
             }
 
             return new List<int>();

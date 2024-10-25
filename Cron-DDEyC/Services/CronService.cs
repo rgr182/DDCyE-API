@@ -3,7 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Cron_BolsaDeTrabajo.Infrastructure;
 using NCrontab;
-using System.Text.Json; 
+using System.Text.Json;
 
 namespace Cron_BolsaDeTrabajo.Services
 {
@@ -11,7 +11,6 @@ namespace Cron_BolsaDeTrabajo.Services
     {
         Task StartAsync();
         Task TestCoreSignalAsync();
-
         Task ExecuteTaskAsync();
     }
 
@@ -19,16 +18,18 @@ namespace Cron_BolsaDeTrabajo.Services
     {
         private readonly IMongoDbConnection _mongoDbConnection;
         private readonly IApiService _apiService;
+        private readonly ILinkedInJobService _linkedInJobService; // Service to fetch LinkedIn job IDs
         private readonly IMongoCollection<BsonDocument> _ofertasLaboralesCollection;
         private Timer _timer;
         private readonly string _cronExpression;
         private readonly IConfiguration _configuration;
 
-        public CronService(IMongoDbConnection mongoDbConnection, IApiService apiService, IConfiguration configuration)
+        public CronService(IMongoDbConnection mongoDbConnection, IApiService apiService, IConfiguration configuration, ILinkedInJobService linkedInJobService)
         {
             _mongoDbConnection = mongoDbConnection;
             _apiService = apiService;
             _configuration = configuration;
+            _linkedInJobService = linkedInJobService;
 
             // Setup MongoDB collection access
             var mongoCollectionName = _configuration["MongoDB:CollectionName"];
@@ -73,7 +74,7 @@ namespace Cron_BolsaDeTrabajo.Services
             try
             {
                 // Test fetching job IDs
-                List<int> jobIds = await _apiService.FetchJobIdsAsync();
+                List<int> jobIds = await _apiService.FetchJobIdsFromDBAsync();
                 if (jobIds.Count > 0)
                 {
                     Console.WriteLine($"Fetched {jobIds.Count} job IDs from API.");
@@ -126,19 +127,15 @@ namespace Cron_BolsaDeTrabajo.Services
 
             try
             {
-                // Cargar IDs desde el archivo JSON local usando System.Text.Json
-                string jsonFilePath = Path.Combine(AppContext.BaseDirectory, "JsonFiles", "JsonRaul.json");
-                if (File.Exists(jsonFilePath))
+                // Fetch job IDs from MongoDB using the LinkedInJobService
+                var jobIdsFromDB = await _linkedInJobService.GetLinkedInJobIdsFromDBAsync();
+                int maxCollects = int.Parse(_configuration["Api:MaxCollects"]);
+
+                // Loop through the fetched job IDs and fetch details for each
+                for (int i = 0; i < Math.Min(jobIdsFromDB.Count, maxCollects); i++)
                 {
-                    var jsonContent = await File.ReadAllTextAsync(jsonFilePath);
-                    var jobData = JsonSerializer.Deserialize<JobIdsContainer>(jsonContent);
-                    List<int> jobIds = jobData?.filtered_job_ids ?? new List<int>();
-
-                    int maxCollects = int.Parse(_configuration["Api:MaxCollects"]);
-
-                    for (int i = 0; i < Math.Min(jobIds.Count, maxCollects); i++)
+                    if (int.TryParse(jobIdsFromDB[i], out int jobId))
                     {
-                        int jobId = jobIds[i];
                         string jobDetails = await _apiService.FetchJobDetailsAsync(jobId);
 
                         if (jobDetails != null)
@@ -156,11 +153,15 @@ namespace Cron_BolsaDeTrabajo.Services
                                 Console.WriteLine($"MongoDB error while saving details for Job ID {jobId}: {e.Message}");
                             }
                         }
+                        else
+                        {
+                            Console.WriteLine($"Failed to fetch details for Job ID {jobId}.");
+                        }
                     }
-                }
-                else
-                {
-                    Console.WriteLine($"Error: JSON file {jsonFilePath} not found.");
+                    else
+                    {
+                        Console.WriteLine($"Invalid job ID format: {jobIdsFromDB[i]}");
+                    }
                 }
             }
             catch (Exception e)
@@ -179,7 +180,7 @@ namespace Cron_BolsaDeTrabajo.Services
         }
     }
 
-    // Clase para deserializar el archivo JSON
+    // Class to deserialize job IDs from a JSON file (not used anymore)
     public class JobIdsContainer
     {
         public List<int> filtered_job_ids { get; set; }
