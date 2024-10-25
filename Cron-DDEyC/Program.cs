@@ -14,7 +14,7 @@ namespace Cron_BolsaDeTrabajo
 
             // Setup Dependency Injection
             var serviceProvider = new ServiceCollection()
-                .AddSingleton<IConfiguration>(configuration)
+                .AddSingleton(configuration)
                 .AddSingleton<IMongoDbConnection>(sp =>
                 {
                     var mongoConnectionString = configuration["MongoDB:ConnectionString"];
@@ -23,13 +23,15 @@ namespace Cron_BolsaDeTrabajo
                 })
                 .AddSingleton<IApiService, ApiService>()
                 .AddSingleton<ICronService, CronService>()
+                .AddSingleton<ILinkedInJobService, LinkedInJobService>()  // <-- Nuevo servicio añadido aquí
                 .BuildServiceProvider();
 
             var cronService = serviceProvider.GetService<ICronService>();
 
 #if TESTING
             // Execute testing method if in testing profile
-            cronService.TestCoreSignalAsync().Wait();
+            //cronService.TestCoreSignalAsync().Wait();
+            cronService.ExecuteTaskAsync().Wait();
 #else
             // Start the Cron Service
             cronService.StartAsync().Wait();
