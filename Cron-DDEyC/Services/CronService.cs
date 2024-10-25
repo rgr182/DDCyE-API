@@ -2,15 +2,14 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Cron_BolsaDeTrabajo.Infrastructure;
+using Cron_DDEyC.Utils; // Import the namespace where LongEqualityComparer is defined
 using NCrontab;
-using System.Text.Json;
 
 namespace Cron_BolsaDeTrabajo.Services
 {
     public interface ICronService
     {
-        Task StartAsync();
-        Task TestCoreSignalAsync();
+        Task StartAsync();        
         Task ExecuteTaskAsync();
     }
 
@@ -44,11 +43,8 @@ namespace Cron_BolsaDeTrabajo.Services
                 return;
             }
 
-#if TESTING
+#if !TESTING
             // In testing mode, directly run the test method
-            Task.Run(TestCoreSignalAsync).Wait();
-#else
-            // In normal mode, setup the cron job
             InitializeCronJob();
 #endif
         }
@@ -65,42 +61,45 @@ namespace Cron_BolsaDeTrabajo.Services
         {
             Console.WriteLine("Cron job started.");
             // Further implementation to start the cron job can be added here
-        }
+        }        
 
-        public async Task TestCoreSignalAsync()
+        public async Task ExecuteTaskAsync()
         {
-            Console.WriteLine("Starting API call tests...");
+            Console.WriteLine($"Executing task at {DateTime.Now}");
 
             try
             {
-                // Test fetching job IDs
-                List<int> jobIds = await _apiService.FetchJobIdsFromDBAsync();
-                if (jobIds.Count > 0)
-                {
-                    Console.WriteLine($"Fetched {jobIds.Count} job IDs from API.");
-                }
-                else
-                {
-                    Console.WriteLine("No job IDs fetched from API.");
-                }
+                // Fetch job IDs from MongoDB (existing IDs as strings)
+                var jobIdsFromDBString = await _linkedInJobService.GetLinkedInJobIdsFromDBAsync();
 
-                // Test fetching job details for a limited number of jobs
+                // Convert string IDs to long IDs
+                var jobIdsFromDB = jobIdsFromDBString
+                    .Where(id => long.TryParse(id, out _)) // Ensure valid long values
+                    .Select(long.Parse)
+                    .ToList();
+
+                // Fetch new job IDs from the API (as long)
+                var jobIdsFromAPI = await _apiService.FetchJobIdsAsync();
                 int maxCollects = int.Parse(_configuration["Api:MaxCollects"]);
 
-                for (int i = 0; i < Math.Min(jobIds.Count, maxCollects); i++)
+                // Use the extension method to find new job IDs that are not in the database
+                var newJobIds = jobIdsFromAPI.GetNewElements(jobIdsFromDB);
+
+                // Loop through the new job IDs and fetch details for each
+                for (int i = 0; i < Math.Min(newJobIds.Count, maxCollects); i++)
                 {
-                    int jobId = jobIds[i];
+                    long jobId = newJobIds[i];
                     string jobDetails = await _apiService.FetchJobDetailsAsync(jobId);
 
                     if (jobDetails != null)
                     {
-                        Console.WriteLine($"Job ID {jobId} details fetched successfully, testing saving to MongoDB...");
+                        Console.WriteLine($"Job ID {jobId} details fetched, saving to MongoDB...");
                         var document = BsonDocument.Parse(jobDetails);
 
                         try
                         {
                             await _ofertasLaboralesCollection.InsertOneAsync(document);
-                            Console.WriteLine($"Job ID {jobId} details saved to MongoDB.");
+                            Console.WriteLine($"Job ID {jobId} details saved.");
                         }
                         catch (Exception e)
                         {
@@ -112,57 +111,6 @@ namespace Cron_BolsaDeTrabajo.Services
                         Console.WriteLine($"Failed to fetch details for Job ID {jobId}.");
                     }
                 }
-
-                Console.WriteLine("API call tests completed.");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Unexpected error during API call tests: {e.Message}");
-            }
-        }
-
-        public async Task ExecuteTaskAsync()
-        {
-            Console.WriteLine($"Executing task at {DateTime.Now}");
-
-            try
-            {
-                // Fetch job IDs from MongoDB using the LinkedInJobService
-                var jobIdsFromDB = await _linkedInJobService.GetLinkedInJobIdsFromDBAsync();
-                int maxCollects = int.Parse(_configuration["Api:MaxCollects"]);
-
-                // Loop through the fetched job IDs and fetch details for each
-                for (int i = 0; i < Math.Min(jobIdsFromDB.Count, maxCollects); i++)
-                {
-                    if (int.TryParse(jobIdsFromDB[i], out int jobId))
-                    {
-                        string jobDetails = await _apiService.FetchJobDetailsAsync(jobId);
-
-                        if (jobDetails != null)
-                        {
-                            Console.WriteLine($"Job ID {jobId} details fetched, saving to MongoDB...");
-                            var document = BsonDocument.Parse(jobDetails);
-
-                            try
-                            {
-                                await _ofertasLaboralesCollection.InsertOneAsync(document);
-                                Console.WriteLine($"Job ID {jobId} details saved.");
-                            }
-                            catch (Exception e)
-                            {
-                                Console.WriteLine($"MongoDB error while saving details for Job ID {jobId}: {e.Message}");
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Failed to fetch details for Job ID {jobId}.");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Invalid job ID format: {jobIdsFromDB[i]}");
-                    }
-                }
             }
             catch (Exception e)
             {
@@ -170,8 +118,10 @@ namespace Cron_BolsaDeTrabajo.Services
             }
         }
 
+
         private TimeSpan CalculateTimeUntilNextRun(string cronExpression)
         {
+            // Parse the cron expression to determine the next execution time
             var cronSchedule = CrontabSchedule.Parse(cronExpression);
             DateTime now = DateTime.Now;
             DateTime nextRun = cronSchedule.GetNextOccurrence(now);
@@ -183,6 +133,6 @@ namespace Cron_BolsaDeTrabajo.Services
     // Class to deserialize job IDs from a JSON file (not used anymore)
     public class JobIdsContainer
     {
-        public List<int> filtered_job_ids { get; set; }
+        public List<long> filtered_job_ids { get; set; }
     }
 }

@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Cron_BolsaDeTrabajo.Services;
 using Cron_BolsaDeTrabajo.Infrastructure;
-using System;
 
 namespace Cron_BolsaDeTrabajo
 {
@@ -15,7 +14,7 @@ namespace Cron_BolsaDeTrabajo
 
             // Setup Dependency Injection
             var serviceProvider = new ServiceCollection()
-                .AddSingleton<IConfiguration>(configuration)
+                .AddSingleton(configuration)
                 .AddSingleton<IMongoDbConnection>(sp =>
                 {
                     var mongoConnectionString = configuration["MongoDB:ConnectionString"];

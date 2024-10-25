@@ -26,25 +26,35 @@ namespace Cron_BolsaDeTrabajo.Services
             {
                 var collection = _mongoDbConnection.GetCollection<BsonDocument>("OfertasLaborales");
 
-                // Filter to get documents containing the "linkedin_job_id" field
-                var filter = Builders<BsonDocument>.Filter.Exists("linkedin_job_id");
-                var projection = Builders<BsonDocument>.Projection.Include("linkedin_job_id").Exclude("_id");
+                // Filter to get documents containing the "id" field
+                var filter = Builders<BsonDocument>.Filter.Exists("id");
+                var projection = Builders<BsonDocument>.Projection.Include("id").Exclude("_id");
 
                 // Retrieve documents that match the filter
                 var result = await collection.Find(filter).Project(projection).ToListAsync();
 
-                // Extract IDs from the retrieved documents
+                // Extract IDs from the retrieved documents using a switch expression
                 foreach (var document in result)
                 {
-                    if (document.Contains("linkedin_job_id"))
+                    if (document.Contains("id"))
                     {
-                        jobIds.Add(document["linkedin_job_id"].AsString);
+                        var idValue = document["id"];
+
+                        var idString = idValue.BsonType switch
+                        {
+                            BsonType.Int64 => idValue.AsInt64.ToString(),
+                            BsonType.Int32 => idValue.AsInt32.ToString(),
+                            BsonType.String => idValue.AsString,
+                            _ => throw new InvalidOperationException($"Unexpected ID type: {idValue.BsonType}")
+                        };
+
+                        jobIds.Add(idString);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error while fetching LinkedIn job IDs: {ex.Message}");
+                Console.WriteLine($"Error while fetching job IDs: {ex.Message}");
             }
 
             return jobIds;
