@@ -3,7 +3,6 @@ using DDEyC_Assistant.Models.Entities;
 
 using OpenAI.Assistants;
 using OpenAI;
-using Microsoft.Extensions.Configuration;
 
 namespace DDEyC_Assistant.Services
 {

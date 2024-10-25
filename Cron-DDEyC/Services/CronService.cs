@@ -2,7 +2,7 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Cron_BolsaDeTrabajo.Infrastructure;
-using Cron_DDEyC.Utils; // Import the namespace where LongEqualityComparer is defined
+using Cron_DDEyC.Utils;
 using NCrontab;
 
 namespace Cron_BolsaDeTrabajo.Services

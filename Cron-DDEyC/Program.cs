@@ -23,14 +23,13 @@ namespace Cron_BolsaDeTrabajo
                 })
                 .AddSingleton<IApiService, ApiService>()
                 .AddSingleton<ICronService, CronService>()
-                .AddSingleton<ILinkedInJobService, LinkedInJobService>()  // <-- Nuevo servicio añadido aquí
+                .AddSingleton<ILinkedInJobService, LinkedInJobService>() 
                 .BuildServiceProvider();
 
             var cronService = serviceProvider.GetService<ICronService>();
 
 #if TESTING
-            // Execute testing method if in testing profile
-            //cronService.TestCoreSignalAsync().Wait();
+            // Execute testing method if in testing profile            
             cronService.ExecuteTaskAsync().Wait();
 #else
             // Start the Cron Service

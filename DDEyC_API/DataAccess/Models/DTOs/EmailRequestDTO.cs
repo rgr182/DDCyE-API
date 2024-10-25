@@ -1,6 +1,4 @@
-﻿using System.Net.Mail;
-
-namespace DDEyC_API.DataAccess.Models.DTOs
+﻿namespace DDEyC_API.DataAccess.Models.DTOs
 {
     public class EmailRequestDTO
     {

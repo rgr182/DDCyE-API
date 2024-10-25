@@ -18,7 +18,7 @@ namespace Cron_BolsaDeTrabajo.Services
         private readonly string _bearerToken;
         private readonly IConfiguration _configuration;
         private readonly HttpClient _httpClient;
-        private readonly ILinkedInJobService _linkedInJobService; // Service to interact with MongoDB
+        private readonly ILinkedInJobService _linkedInJobService; 
 
         public ApiService(IConfiguration configuration, ILinkedInJobService linkedInJobService)
         {

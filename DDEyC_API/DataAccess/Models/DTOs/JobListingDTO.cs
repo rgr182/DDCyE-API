@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace DDEyC_API.Models.DTOs
 {
     public class JobListingFilter

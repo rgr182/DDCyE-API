@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using DDEyC_API.Models;
 using DDEyC_API.DataAccess.Services;
 using DDEyC_API.Models.DTOs;

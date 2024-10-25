@@ -4,10 +4,7 @@ using DDEyC_API.DataAccess.Services;
 using DDEyC_Auth.Infraestructure;
 using DDEyC_Auth.Utils;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.FileProviders; 
-using System.IO;
 using Microsoft.AspNetCore.Mvc.Razor;
 
 var builder = WebApplication.CreateBuilder(args);

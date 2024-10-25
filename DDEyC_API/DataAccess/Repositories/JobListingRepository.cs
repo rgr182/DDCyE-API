@@ -1,9 +1,5 @@
 using DDEyC_API.Models;
-using DDEyC_API.Models.DTOs;
-using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace DDEyC_API.DataAccess.Repositories
 {

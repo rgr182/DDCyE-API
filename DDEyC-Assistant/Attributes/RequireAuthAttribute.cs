@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace DDEyC_Assistant.Attributes
 {

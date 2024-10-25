@@ -2,7 +2,6 @@
 using DDEyC_API.DataAccess.Services;
 using Microsoft.AspNetCore.Authorization;
 using DDEyC_API.DataAccess.Models.DTOs;
-using Microsoft.AspNetCore.Http;
 
 namespace DDEyC.Controllers
 {

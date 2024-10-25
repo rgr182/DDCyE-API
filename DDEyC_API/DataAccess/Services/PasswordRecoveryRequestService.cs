@@ -4,7 +4,6 @@ using DDEyC_Auth.DataAccess.Models.Entities;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
-using PreMailer.Net;
 
 namespace DDEyC_API.DataAccess.Services
 {

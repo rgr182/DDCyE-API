@@ -9,7 +9,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using OpenAI.Assistants;
-using Xunit;
 using DDEyC_Assistant.Models.Entities;
 using DDEyC_Assistant.Services;
 
