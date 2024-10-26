@@ -1,7 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Cron_DDEyC.Infraestructure;
 using Cron_BolsaDeTrabajo.Services;
-using Cron_BolsaDeTrabajo.Infrastructure;
 
 namespace Cron_BolsaDeTrabajo
 {
@@ -9,27 +8,14 @@ namespace Cron_BolsaDeTrabajo
     {
         static void Main(string[] args)
         {
-            // Load configuration from appsettings.json
-            var configuration = LoadConfiguration();
+            // Create a service provider using the Startup class configuration
+            var serviceProvider = Startup.ConfigureServices();
 
-            // Setup Dependency Injection
-            var serviceProvider = new ServiceCollection()
-                .AddSingleton(configuration)
-                .AddSingleton<IMongoDbConnection>(sp =>
-                {
-                    var mongoConnectionString = configuration["MongoDB:ConnectionString"];
-                    var mongoDatabaseName = configuration["MongoDB:DatabaseName"];
-                    return new MongoDbConnection(mongoConnectionString, mongoDatabaseName);
-                })
-                .AddSingleton<IApiService, ApiService>()
-                .AddSingleton<ICronService, CronService>()
-                .AddSingleton<ILinkedInJobService, LinkedInJobService>() 
-                .BuildServiceProvider();
-
+            // Resolve the ICronService and start the cron job
             var cronService = serviceProvider.GetService<ICronService>();
 
 #if TESTING
-            // Execute testing method if in testing profile            
+            // Execute testing method if in testing profile
             cronService.ExecuteTaskAsync().Wait();
 #else
             // Start the Cron Service
@@ -39,15 +25,6 @@ namespace Cron_BolsaDeTrabajo
             // Keep the application running
             Console.WriteLine("Press [Enter] to exit the program.");
             Console.ReadLine();
-        }
-
-        private static IConfiguration LoadConfiguration()
-        {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(AppContext.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-
-            return builder.Build();
         }
     }
 }
