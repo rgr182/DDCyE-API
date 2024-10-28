@@ -179,10 +179,11 @@ namespace DDEyC_Assistant.Repositories
             {
                 var cutoffDate = DateTime.UtcNow.Subtract(retentionPeriod);
 
-                // Don't delete messages that are favorites or from favorite threads
+                // Use explicit null checks in the query
                 var oldMessages = await _context.Messages
                     .Where(m => m.Timestamp < cutoffDate)
-                    .Where(m => !m.IsFavorite && !m.UserThread.IsFavorite)
+                    .Where(m => !m.IsFavorite)
+                    .Where(m => m.UserThread != null && !m.UserThread.IsFavorite)
                     .ToListAsync();
 
                 if (oldMessages.Any())
@@ -234,13 +235,48 @@ namespace DDEyC_Assistant.Repositories
         }
 
         public async Task<List<UserThread>> GetFavoriteThreads(int userId)
+    {
+        try
         {
-            return await _context.UserThreads
-                .Where(t => t.UserId == userId && t.IsFavorite)
+            // First get all threads for logging purposes
+            var allThreads = await _context.UserThreads
+                .Where(t => t.UserId == userId)
+                .ToListAsync();
+
+            _logger.LogInformation(
+                "Found {TotalThreads} total threads for user {UserId}, {FavoriteCount} are marked as favorites",
+                allThreads.Count,
+                userId,
+                allThreads.Count(t => t.IsFavorite)
+            );
+
+            // Then get only favorites
+            var favoriteThreads = await _context.UserThreads
+                .Where(t => t.UserId == userId && t.IsFavorite == true)
                 .OrderByDescending(t => t.LastUsed)
                 .ToListAsync();
-        }
 
+            if (favoriteThreads.Any(t => !t.IsFavorite))
+            {
+                _logger.LogWarning(
+                    "Found {Count} threads marked as non-favorite in favorites query for user {UserId}",
+                    favoriteThreads.Count(t => !t.IsFavorite),
+                    userId
+                );
+            }
+
+            return favoriteThreads;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error retrieving favorite threads for user {UserId}",
+                userId
+            );
+            throw;
+        }
+    }
         public async Task<List<Message>> GetFavoriteMessages(int userId)
         {
             return await _context.Messages

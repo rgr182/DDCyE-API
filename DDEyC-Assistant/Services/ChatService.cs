@@ -59,11 +59,15 @@ public class ChatService : IChatService
             var messages = await _chatRepository.GetMessagesForThread(activeThread.Id);
             return new ChatStartResultDto
             {
+                Id = activeThread.Id,
                 ThreadId = activeThread.ThreadId,
                 WelcomeMessage = messages.LastOrDefault()?.Content ?? "Bienvenido de vuelta, continuemos tu anterior conversación.",
                 Messages = messages.Select(m => new MessageDto
                 {
+                    Id = m.Id,
                     Content = m.Content,
+                    IsFavorite = m.IsFavorite,
+                    FavoriteNote = m.FavoriteNote,
                     Role = m.Role,
                     Timestamp = m.Timestamp
                 }).ToList()
@@ -81,17 +85,21 @@ public class ChatService : IChatService
         const string defaultWelcomeMessage = "Hola! soy un chatbot desarrollado para ayudarte a buscar empleo, ¿Qué necesitas?";
         string welcomeMessage = _configuration["Appsettings:WelcomeMessage"] ?? defaultWelcomeMessage;
         await _assistantService.AddMessageToThreadAsync(newThread.Id, welcomeMessage, MessageRole.Assistant);
-        await _chatRepository.AddMessage(userThread.Id, welcomeMessage, MessageRole.Assistant);
+        var addedMessage= await _chatRepository.AddMessage(userThread.Id, welcomeMessage, MessageRole.Assistant);
 
         return new ChatStartResultDto
         {
+            Id = userThread.Id,
             ThreadId = newThread.Id,
             WelcomeMessage = welcomeMessage,
             Messages = new List<MessageDto>
             {
                 new MessageDto
                 {
+                    Id = addedMessage.Id,
                     Content = welcomeMessage,
+                    IsFavorite = false,
+                    FavoriteNote = string.Empty,
                     Role = MessageRole.Assistant.ToString(),
                     Timestamp = DateTime.UtcNow
                 }
@@ -191,6 +199,7 @@ public class ChatService : IChatService
 
                 return new ChatResponseDto
                 {
+                    MessageId = userMessage.Id,
                     ThreadId = chatRequest.ThreadId,
                     Response = response.Content,
                     Status = "success"
@@ -405,8 +414,11 @@ public class ChatService : IChatService
         var messages = await _chatRepository.GetMessagesForThread(threadId);
         return messages.Select(m => new MessageDto
         {
+            Id = m.Id,
             Content = m.Content,
             Role = m.Role,
+            IsFavorite = m.IsFavorite,
+            FavoriteNote = m.FavoriteNote,
             Timestamp = m.Timestamp
         }).ToList();
     }
@@ -496,6 +508,8 @@ private UserThreadDto MapUserThreadToDto(UserThread thread)
             Id = thread.Id,
             ThreadId = thread.ThreadId,
             LastUsed = thread.LastUsed,
+            IsFavorite = thread.IsFavorite,
+            FavoriteNote = thread.FavoriteNote,
             IsActive = thread.IsActive
         };
     }

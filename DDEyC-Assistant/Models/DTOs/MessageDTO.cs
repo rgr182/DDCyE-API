@@ -10,7 +10,7 @@ public class MessageDto
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; set; }
     public bool IsFavorite { get; set; }
-    public string FavoriteNote { get; set; }
+    public string? FavoriteNote { get; set; }
 }
  }
      

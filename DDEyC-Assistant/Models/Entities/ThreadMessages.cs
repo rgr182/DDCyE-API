@@ -18,6 +18,6 @@ namespace DDEyC_Assistant.Models
     public string Role { get; set; }
     public DateTime Timestamp { get; set; }
     public bool IsFavorite { get; set; }
-    public string FavoriteNote { get; set; }
+    public string? FavoriteNote { get; set; }
 }
 }

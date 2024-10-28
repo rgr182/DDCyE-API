@@ -6,6 +6,6 @@ namespace DDEyC_Assistant.Models.DTOs{
     public DateTime LastUsed { get; set; }
     public bool IsActive { get; set; }
     public bool IsFavorite { get; set; }
-    public string FavoriteNote { get; set; }
+    public string? FavoriteNote { get; set; }
 }
 }
