@@ -428,6 +428,67 @@ public class ChatService : IChatService
         var threads = await _chatRepository.GetRecentThreadsForUser(userId, count);
         return threads.Select(MapUserThreadToDto).ToList();
     }
+     public async Task<bool> ToggleThreadFavoriteAsync(int userId, int threadId, string note)
+    {
+        try
+        {
+            return await _chatRepository.ToggleThreadFavorite(userId, threadId, note);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling thread favorite for user {UserId}, thread {ThreadId}", userId, threadId);
+            throw new ChatServiceException("Failed to toggle thread favorite", "FAVORITE_TOGGLE_FAILED");
+        }
+    }
+
+    public async Task<bool> ToggleMessageFavoriteAsync(int userId, int messageId, string note)
+    {
+        try
+        {
+            return await _chatRepository.ToggleMessageFavorite(userId, messageId, note);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling message favorite for user {UserId}, message {MessageId}", userId, messageId);
+            throw new ChatServiceException("Failed to toggle message favorite", "FAVORITE_TOGGLE_FAILED");
+        }
+    }
+
+    public async Task<List<UserThreadDto>> GetFavoriteThreadsAsync(int userId)
+    {
+        try
+        {
+            var favorites = await _chatRepository.GetFavoriteThreads(userId);
+            return favorites.Select(MapUserThreadToDto).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting favorite threads for user {UserId}", userId);
+            throw new ChatServiceException("Failed to get favorite threads", "FAVORITE_FETCH_FAILED");
+        }
+    }
+
+    public async Task<List<MessageDto>> GetFavoriteMessagesAsync(int userId)
+    {
+        try
+        {
+            var favorites = await _chatRepository.GetFavoriteMessages(userId);
+            return favorites.Select(m => new MessageDto
+            {
+                Id = m.Id,
+                Content = m.Content,
+                Role = m.Role,
+                Timestamp = m.Timestamp,
+                IsFavorite = m.IsFavorite,
+                FavoriteNote = m.FavoriteNote
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting favorite messages for user {UserId}", userId);
+            throw new ChatServiceException("Failed to get favorite messages", "FAVORITE_FETCH_FAILED");
+        }
+    }
 private UserThreadDto MapUserThreadToDto(UserThread thread)
     {
         return new UserThreadDto

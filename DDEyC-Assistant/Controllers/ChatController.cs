@@ -128,6 +128,75 @@ namespace DDEyC_Assistant.Controllers
                 return StatusCode(500, "An error occurred while retrieving messages for the thread.");
             }
         }
+        // Add these endpoints to your existing ChatController
+
+        [HttpPost("threads/{threadId}/favorite")]
+        [RequireAuth]
+        public async Task<IActionResult> ToggleThreadFavorite(int threadId, [FromBody] string note)
+        {
+            try
+            {
+                var userId = GetUserIdFromToken();
+                var isFavorite = await _chatService.ToggleThreadFavoriteAsync(userId, threadId, note);
+                return Ok(new { isFavorite });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling thread favorite");
+                return StatusCode(500, "An error occurred while toggling the thread favorite status.");
+            }
+        }
+
+        [HttpPost("messages/{messageId}/favorite")]
+        [RequireAuth]
+        public async Task<IActionResult> ToggleMessageFavorite(int messageId, [FromBody] string note)
+        {
+            try
+            {
+                var userId = GetUserIdFromToken();
+                var isFavorite = await _chatService.ToggleMessageFavoriteAsync(userId, messageId, note);
+                return Ok(new { isFavorite });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling message favorite");
+                return StatusCode(500, "An error occurred while toggling the message favorite status.");
+            }
+        }
+
+        [HttpGet("favorites/threads")]
+        [RequireAuth]
+        public async Task<IActionResult> GetFavoriteThreads()
+        {
+            try
+            {
+                var userId = GetUserIdFromToken();
+                var favorites = await _chatService.GetFavoriteThreadsAsync(userId);
+                return Ok(favorites);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving favorite threads");
+                return StatusCode(500, "An error occurred while retrieving favorite threads.");
+            }
+        }
+
+        [HttpGet("favorites/messages")]
+        [RequireAuth]
+        public async Task<IActionResult> GetFavoriteMessages()
+        {
+            try
+            {
+                var userId = GetUserIdFromToken();
+                var favorites = await _chatService.GetFavoriteMessagesAsync(userId);
+                return Ok(favorites);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving favorite messages");
+                return StatusCode(500, "An error occurred while retrieving favorite messages.");
+            }
+        }
         private int GetUserIdFromToken()
         {
             try
