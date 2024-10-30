@@ -5,13 +5,13 @@
 }
 
 .logos-container {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
     padding-bottom: 10px; /* Space between the logos and the color strip */
 }
 
 .logo {
-    max-height: 80px;
+    max-height: 180px;
 }
 
 .color-strip {
