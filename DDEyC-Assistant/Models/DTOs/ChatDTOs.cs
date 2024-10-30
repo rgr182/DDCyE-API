@@ -2,6 +2,7 @@ namespace DDEyC_Assistant.Models.DTOs
 {
     public class ChatStartResultDto
     {
+        public int Id { get; set; }
         public string ThreadId { get; set; }
         public string WelcomeMessage { get; set; }
         public List<MessageDto> Messages { get; set; }
@@ -19,5 +20,6 @@ namespace DDEyC_Assistant.Models.DTOs
         public string Response { get; set; }
         public string Status { get; set; }
         public string Error { get; set; }
+        public int MessageId { get; set; }  // Add this property
     }
 }
