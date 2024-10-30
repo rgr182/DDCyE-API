@@ -19,5 +19,9 @@ namespace DDEyC_Assistant.Repositories
         Task DeleteOldMessages(TimeSpan retentionPeriod);
         Task<ConversationStateEntity> GetConversationState(string conversationId);
         Task UpdateConversationState(string conversationId, ConversationState state, string runId);
+        Task<bool> ToggleThreadFavorite(int userId, int threadId, string note);
+        Task<bool> ToggleMessageFavorite(int userId, int messageId, string note);
+        Task<List<UserThread>> GetFavoriteThreads(int userId);
+        Task<List<Message>> GetFavoriteMessages(int userId);
     }
 }
