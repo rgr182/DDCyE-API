@@ -1,4 +1,12 @@
-﻿.mainTitle {
+﻿body {
+    font-family: 'Montserrat', sans-serif;
+}
+.font-monserrat {
+    font-family: 'Montserrat', sans-serif;
+}
+
+
+.mainTitle {
     background-color: #007bff;
     height: 115px;
 }
@@ -87,6 +95,7 @@
         margin: 0;
     }
     #logo {
+        margin: 20px 0 0;
         width: 75%;
     }
 }

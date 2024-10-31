@@ -5,18 +5,18 @@
 }
 
 .logos-container {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
     padding-bottom: 10px; /* Space between the logos and the color strip */
 }
 
 .logo {
-    max-height: 80px;
+    max-height: 180px;
 }
 
 .color-strip {
     height: 10px;
-    background: linear-gradient(to right, #ff0000, #00ff00, #0000ff); /* Color strip */
+    background-image: linear-gradient(to right, red, orange, yellow, green, cyan, purple, violet);
     width: 100%;
 }
 
