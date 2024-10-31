@@ -2,7 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace DDEyC_API.Models
-{
+{  
     public class Course
     {
         [BsonId]
@@ -26,5 +26,12 @@ namespace DDEyC_API.Models
 
         [BsonElement("is_active")]
         public bool IsActive { get; set; }
+
+        // Normalized fields for search
+        [BsonElement("normalized_title")]
+        public string NormalizedTitle { get; set; }
+
+        [BsonElement("normalized_description")]
+        public string NormalizedDescription { get; set; }
     }
 }

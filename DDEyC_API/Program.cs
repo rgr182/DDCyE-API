@@ -64,7 +64,6 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 AuthenticationConfig authenticationConfig = new AuthenticationConfig(builder);
-
 // Register your services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -78,10 +77,12 @@ builder.Services.AddScoped<IJobListingService, JobListingService>();
 builder.Services.AddScoped<IJobListingRepository, JobListingRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICourseService, CourseService>();
-builder.Services.AddScoped<CourseImportService>();
+builder.Services.AddSingleton<ITextNormalizationService, TextNormalizationService>();
+builder.Services.AddScoped<ICourseImportService,CourseImportService>();
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 

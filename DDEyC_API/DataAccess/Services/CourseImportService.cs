@@ -2,14 +2,19 @@ using DDEyC_API.DataAccess.Repositories;
 using DDEyC_API.Models;
 using OfficeOpenXml;
 
-namespace DDEyC_API.Services
-{
-    public class CourseImportService
+public interface ICourseImportService
+    {
+        Task ImportFromExcel(IFormFile file);
+    }
+
+public class CourseImportService : ICourseImportService
     {
         private readonly ICourseRepository _repository;
         private readonly ILogger<CourseImportService> _logger;
 
-        public CourseImportService(ICourseRepository repository, ILogger<CourseImportService> logger)
+        public CourseImportService(
+            ICourseRepository repository,
+            ILogger<CourseImportService> logger)
         {
             _repository = repository;
             _logger = logger;
@@ -53,8 +58,11 @@ namespace DDEyC_API.Services
                 }
             }
 
-            await _repository.DeleteAllAsync(); // Clear existing courses
-            await _repository.BulkInsertAsync(courses);
+            if (courses.Any())
+            {
+                await _repository.DeleteAllAsync();
+                await _repository.BulkInsertAsync(courses);
+                _logger.LogInformation("Successfully imported {Count} courses", courses.Count);
+            }
         }
     }
-}

@@ -9,12 +9,12 @@ namespace DDEyC_API.Controllers
     public class CoursesController : ControllerBase
     {
         private readonly ICourseService _courseService;
-        private readonly CourseImportService _importService;
+        private readonly ICourseImportService _importService;
         private readonly ILogger<CoursesController> _logger;
 
         public CoursesController(
             ICourseService courseService,
-            CourseImportService importService,
+            ICourseImportService importService,
             ILogger<CoursesController> logger)
         {
             _courseService = courseService;
@@ -23,6 +23,8 @@ namespace DDEyC_API.Controllers
         }
 
         [HttpPost("recommendations")]
+        [ProducesResponseType(typeof(List<Course>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<List<Course>>> GetRecommendations([FromBody] CourseFilter filter)
         {
             try
@@ -38,6 +40,9 @@ namespace DDEyC_API.Controllers
         }
 
         [HttpPost("import")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ImportCourses(IFormFile file)
         {
             try
