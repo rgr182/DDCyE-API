@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using DDEyC_API.DataAccess.Models.DTOs;
 using DDEyC_API.DataAccess.Repositories;
 using DDEyC_API.Models;
 using DDEyC_API.Models.DTOs;
@@ -11,7 +12,7 @@ namespace DDEyC_API.Services
 {
     public interface ICourseService
     {
-        Task<List<Course>> GetRecommendedCoursesAsync(CourseFilter filter);
+        Task<List<CourseDto>> GetRecommendedCoursesAsync(CourseFilter filter);
     }
 
     public class CourseService : ICourseService
@@ -34,14 +35,14 @@ namespace DDEyC_API.Services
             _textNormalizer = textNormalizer;
         }
 
-        public async Task<List<Course>> GetRecommendedCoursesAsync(CourseFilter filter)
+        public async Task<List<CourseDto>> GetRecommendedCoursesAsync(CourseFilter filter)
         {
             var cacheKey = $"courses_{filter.SearchTerm}_{filter.Location}_{filter.Limit}";
 
-            if (_cache.TryGetValue(cacheKey, out List<Course> cachedCourses))
+            if (_cache.TryGetValue(cacheKey, out List<CourseDto> cachedCourses))
             {
                 _logger.LogInformation("Returning cached course results for key: {CacheKey}", cacheKey);
-                return cachedCourses ?? new List<Course>();
+                return cachedCourses ?? new List<CourseDto>();
             }
 
             var builder = Builders<Course>.Filter;
@@ -92,12 +93,23 @@ namespace DDEyC_API.Services
                 BsonSerializer.SerializerRegistry));
 
             var courses = await _repository.GetCoursesAsync(filterDefinition, filter.Limit, options);
-
-            _cache.Set(cacheKey, courses, CacheDuration);
-
-            _logger.LogInformation("Found {Count} courses matching criteria", courses.Count);
-
-            return courses;
+        
+        var courseDtos = courses.Select(c => new CourseDto
+        {
+            Id = c.Id,
+            Title = c.Title,
+            Location = c.Location,
+            Date = c.Date,
+            Description = c.Description,
+            DetailLink = c.DetailLink,
+            IsActive = c.IsActive
+        }).ToList();
+        
+        _cache.Set(cacheKey, courseDtos, CacheDuration);
+        
+        _logger.LogInformation("Found {Count} courses matching criteria", courseDtos.Count);
+        
+        return courseDtos;
         }
 
         private IEnumerable<string> TokenizeSearchTerm(string searchTerm)
