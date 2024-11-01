@@ -3,6 +3,7 @@
 }
 .font-monserrat {
     font-family: 'Montserrat', sans-serif;
+    font-size: 18px;
 }
 
 
@@ -10,6 +11,9 @@
     background-color: #007bff;
     height: 115px;
 }
+    .mainTitle h1 {
+        font-size: 36px;
+    }
 .UserInfo {
     width: 45%;
     min-height: 50px;
