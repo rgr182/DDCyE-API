@@ -19,7 +19,6 @@ namespace DDEyC_Assistant.Controllers
             _chatService = chatService;
             _logger = logger;
         }
-
         [HttpPost("StartChat")]
         [RequireAuth]
         [ProducesResponseType(typeof(ChatStartResultDto), StatusCodes.Status200OK)]
@@ -51,7 +50,6 @@ namespace DDEyC_Assistant.Controllers
                 });
             }
         }
-
         [HttpPost("Chat")]
         [RequireAuth]
         [ProducesResponseType(typeof(ChatResponseDto), StatusCodes.Status200OK)]
@@ -110,7 +108,6 @@ namespace DDEyC_Assistant.Controllers
                 });
             }
         }
-
         [HttpGet("threads")]
         [RequireAuth]
         [ProducesResponseType(typeof(List<UserThreadDto>), StatusCodes.Status200OK)]
@@ -142,7 +139,6 @@ namespace DDEyC_Assistant.Controllers
                 });
             }
         }
-
         [HttpGet("threads/{threadId}")]
         [RequireAuth]
         [ProducesResponseType(typeof(UserThreadDto), StatusCodes.Status200OK)]
@@ -182,7 +178,6 @@ namespace DDEyC_Assistant.Controllers
                 });
             }
         }
-
         [HttpGet("threads/recent/{count}")]
         [RequireAuth]
         [ProducesResponseType(typeof(List<UserThreadDto>), StatusCodes.Status200OK)]
@@ -214,7 +209,6 @@ namespace DDEyC_Assistant.Controllers
                 });
             }
         }
-
         [HttpGet("threads/{threadId:int}/messages")]
         [RequireAuth]
         [ProducesResponseType(typeof(List<MessageDto>), StatusCodes.Status200OK)]
@@ -255,7 +249,6 @@ namespace DDEyC_Assistant.Controllers
                 });
             }
         }
-
         [HttpPost("threads/{threadId}/favorite")]
         [RequireAuth]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -296,7 +289,6 @@ namespace DDEyC_Assistant.Controllers
                 });
             }
         }
-
         [HttpPost("messages/{messageId}/favorite")]
         [RequireAuth]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -337,7 +329,6 @@ namespace DDEyC_Assistant.Controllers
                 });
             }
         }
-
         [HttpGet("favorites/threads")]
         [RequireAuth]
         [ProducesResponseType(typeof(List<UserThreadDto>), StatusCodes.Status200OK)]
@@ -369,7 +360,6 @@ namespace DDEyC_Assistant.Controllers
                 });
             }
         }
-
         [HttpGet("favorites/messages")]
         [RequireAuth]
         [ProducesResponseType(typeof(List<MessageDto>), StatusCodes.Status200OK)]
@@ -439,6 +429,4 @@ namespace DDEyC_Assistant.Controllers
             }
         }
     }
-
-
 }
