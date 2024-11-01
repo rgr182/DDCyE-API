@@ -6,6 +6,7 @@ using DDEyC_Auth.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Mvc.Razor;
+using DDEyC_API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -63,7 +64,6 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 AuthenticationConfig authenticationConfig = new AuthenticationConfig(builder);
-
 // Register your services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -75,9 +75,14 @@ builder.Services.AddScoped<IPasswordRecoveryRequestService, PasswordRecoveryRequ
 builder.Services.AddScoped<IPasswordRecoveryRequestRepository, PasswordRecoveryRequestRepository>();
 builder.Services.AddScoped<IJobListingService, JobListingService>();
 builder.Services.AddScoped<IJobListingRepository, JobListingRepository>();
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddSingleton<ITextNormalizationService, TextNormalizationService>();
+builder.Services.AddScoped<ICourseImportService,CourseImportService>();
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 

@@ -1,3 +1,6 @@
+using System.Net.Http.Headers;
+using System.Net.Mime;
+using System.Text;
 using System.Text.Json;
 using DDEyC_API.Models.DTOs;
 using DDEyC_Assistant.Exceptions;
@@ -38,7 +41,7 @@ public class ChatService : IChatService
         _httpClient = httpClient;
         _configuration = configuration;
         _lockManager = lockManager;
-        
+
         _conversationTimeout = TimeSpan.FromMinutes(5); // Can be moved to configuration
         _threadExpirationTime = TimeSpan.FromHours(
             configuration.GetValue("Chat:ThreadExpirationHours", 24));
@@ -85,7 +88,7 @@ public class ChatService : IChatService
         const string defaultWelcomeMessage = "Hola! soy un chatbot desarrollado para ayudarte a buscar empleo, ¿Qué necesitas?";
         string welcomeMessage = _configuration["Appsettings:WelcomeMessage"] ?? defaultWelcomeMessage;
         await _assistantService.AddMessageToThreadAsync(newThread.Id, welcomeMessage, MessageRole.Assistant);
-        var addedMessage= await _chatRepository.AddMessage(userThread.Id, welcomeMessage, MessageRole.Assistant);
+        var addedMessage = await _chatRepository.AddMessage(userThread.Id, welcomeMessage, MessageRole.Assistant);
 
         return new ChatStartResultDto
         {
@@ -266,6 +269,7 @@ public class ChatService : IChatService
         return null;
     }
 
+    // In ChatService.cs, update ProcessRunWithRetryAsync
     private async Task<(bool success, MessageEntity? response)> ProcessRunWithRetryAsync(string threadId, string runId)
     {
         DateTime timeout = DateTime.UtcNow.Add(_runTimeout);
@@ -275,17 +279,28 @@ public class ChatService : IChatService
             try
             {
                 var retrievedRun = await _assistantService.GetRunAsync(threadId, runId);
+
                 if (retrievedRun.Status == RunStatus.RequiresAction)
                 {
-                    var requiredAction = retrievedRun.RequiredActions.First();
-                    var functionResult = await HandleFunctionCallAsync(
-                        requiredAction.FunctionName,
-                        requiredAction.FunctionArguments);
+                    // Process all tools and collect their outputs
+                    var toolOutputs = await Task.WhenAll(
+                        retrievedRun.RequiredActions.Select(async action =>
+                        {
+                            var result = await HandleFunctionCallAsync(
+                                action.FunctionName,
+                                action.FunctionArguments);
+                            return new ToolOutput(action.ToolCallId, result);
+                        })
+                    );
+
+                    // Submit all outputs in a single API call
                     await _assistantService.SubmitToolOutputsToRunAsync(
                         threadId,
                         runId,
-                        requiredAction.ToolCallId,
-                        functionResult);
+                        toolOutputs);
+
+                    await Task.Delay(1000);
+                    continue;
                 }
                 else if (retrievedRun.Status == RunStatus.Completed)
                 {
@@ -293,9 +308,9 @@ public class ChatService : IChatService
                     return (true, message);
                 }
                 else if (retrievedRun.Status == RunStatus.Failed ||
-                        retrievedRun.Status == RunStatus.Expired ||
-                        retrievedRun.Status == RunStatus.Cancelling ||
-                        retrievedRun.Status == RunStatus.Cancelled)
+                         retrievedRun.Status == RunStatus.Expired ||
+                         retrievedRun.Status == RunStatus.Cancelling ||
+                         retrievedRun.Status == RunStatus.Cancelled)
                 {
                     _logger.LogError("Run failed with status: {Status}", retrievedRun.Status);
                     return (false, null);
@@ -312,7 +327,6 @@ public class ChatService : IChatService
 
         throw OpenAIServiceException.Timeout();
     }
-
     private async Task<string> HandleFunctionCallAsync(string functionName, string arguments)
     {
         _logger.LogInformation(
@@ -326,6 +340,8 @@ public class ChatService : IChatService
             {
                 case "get_job_listings":
                     return await HandleGetJobListingsAsync(arguments);
+                case "get_course_recommendations":
+                    return await HandleGetCourseRecommendationsAsync(arguments);
                 default:
                     _logger.LogWarning("Unknown function: {FunctionName}", functionName);
                     return JsonSerializer.Serialize(new { error = $"Unknown function: {functionName}" });
@@ -365,7 +381,36 @@ public class ChatService : IChatService
         _logger.LogError("Failed to retrieve job listings. Status: {StatusCode}", response.StatusCode);
         return JsonSerializer.Serialize(new { error = "Failed to retrieve job listings" });
     }
+    private async Task<string> HandleGetCourseRecommendationsAsync(string arguments)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
+        var args = JsonSerializer.Deserialize<CourseFilter>(arguments, options);
+        if (args == null)
+        {
+            _logger.LogWarning("Failed to deserialize course recommendation arguments");
+            return JsonSerializer.Serialize(new { error = "Invalid course recommendation arguments" });
+        }
+
+        var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/Courses/recommendations";
+        var content = new StringContent(
+            JsonSerializer.Serialize(args, options),
+            Encoding.UTF8,
+            MediaTypeNames.Application.Json);
+
+        var response = await _httpClient.PostAsync(url, content);
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        _logger.LogError("Failed to retrieve course recommendations. Status: {StatusCode}", response.StatusCode);
+        return JsonSerializer.Serialize(new { error = "Failed to retrieve course recommendations" });
+    }
     private Dictionary<string, string> BuildJobListingQueryParams(JobListingFilter args)
     {
         var queryParams = new Dictionary<string, string>
@@ -440,7 +485,7 @@ public class ChatService : IChatService
         var threads = await _chatRepository.GetRecentThreadsForUser(userId, count);
         return threads.Select(MapUserThreadToDto).ToList();
     }
-     public async Task<bool> ToggleThreadFavoriteAsync(int userId, int threadId, string note)
+    public async Task<bool> ToggleThreadFavoriteAsync(int userId, int threadId, string note)
     {
         try
         {
@@ -501,7 +546,7 @@ public class ChatService : IChatService
             throw new ChatServiceException("Failed to get favorite messages", "FAVORITE_FETCH_FAILED");
         }
     }
-private UserThreadDto MapUserThreadToDto(UserThread thread)
+    private UserThreadDto MapUserThreadToDto(UserThread thread)
     {
         return new UserThreadDto
         {
