@@ -19,7 +19,7 @@ namespace DDEyC_Assistant.Attributes
             var httpClientFactory = httpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
             var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
             var httpClient = httpClientFactory.CreateClient();
-            var ddEycApiUrl = configuration["DDEyCApiUrl"];
+            var ddEycApiUrl = configuration["AppSettings:BackendUrl"];
 
             try
             {

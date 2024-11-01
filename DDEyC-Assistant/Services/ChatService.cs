@@ -269,6 +269,7 @@ public class ChatService : IChatService
         return null;
     }
 
+    // In ChatService.cs, update ProcessRunWithRetryAsync
     private async Task<(bool success, MessageEntity? response)> ProcessRunWithRetryAsync(string threadId, string runId)
     {
         DateTime timeout = DateTime.UtcNow.Add(_runTimeout);
@@ -278,17 +279,28 @@ public class ChatService : IChatService
             try
             {
                 var retrievedRun = await _assistantService.GetRunAsync(threadId, runId);
+
                 if (retrievedRun.Status == RunStatus.RequiresAction)
                 {
-                    var requiredAction = retrievedRun.RequiredActions.First();
-                    var functionResult = await HandleFunctionCallAsync(
-                        requiredAction.FunctionName,
-                        requiredAction.FunctionArguments);
+                    // Process all tools and collect their outputs
+                    var toolOutputs = await Task.WhenAll(
+                        retrievedRun.RequiredActions.Select(async action =>
+                        {
+                            var result = await HandleFunctionCallAsync(
+                                action.FunctionName,
+                                action.FunctionArguments);
+                            return new ToolOutput(action.ToolCallId, result);
+                        })
+                    );
+
+                    // Submit all outputs in a single API call
                     await _assistantService.SubmitToolOutputsToRunAsync(
                         threadId,
                         runId,
-                        requiredAction.ToolCallId,
-                        functionResult);
+                        toolOutputs);
+
+                    await Task.Delay(1000);
+                    continue;
                 }
                 else if (retrievedRun.Status == RunStatus.Completed)
                 {
@@ -296,9 +308,9 @@ public class ChatService : IChatService
                     return (true, message);
                 }
                 else if (retrievedRun.Status == RunStatus.Failed ||
-                        retrievedRun.Status == RunStatus.Expired ||
-                        retrievedRun.Status == RunStatus.Cancelling ||
-                        retrievedRun.Status == RunStatus.Cancelled)
+                         retrievedRun.Status == RunStatus.Expired ||
+                         retrievedRun.Status == RunStatus.Cancelling ||
+                         retrievedRun.Status == RunStatus.Cancelled)
                 {
                     _logger.LogError("Run failed with status: {Status}", retrievedRun.Status);
                     return (false, null);
@@ -315,7 +327,6 @@ public class ChatService : IChatService
 
         throw OpenAIServiceException.Timeout();
     }
-
     private async Task<string> HandleFunctionCallAsync(string functionName, string arguments)
     {
         _logger.LogInformation(
@@ -385,7 +396,7 @@ public class ChatService : IChatService
             return JsonSerializer.Serialize(new { error = "Invalid course recommendation arguments" });
         }
 
-        var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/courses/recommendations";
+        var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/Courses/recommendations";
         var content = new StringContent(
             JsonSerializer.Serialize(args, options),
             Encoding.UTF8,
