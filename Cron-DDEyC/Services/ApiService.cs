@@ -18,7 +18,7 @@ namespace Cron_BolsaDeTrabajo.Services
         private readonly string _bearerToken;
         private readonly IConfiguration _configuration;
         private readonly HttpClient _httpClient;
-        private readonly ILinkedInJobService _linkedInJobService; 
+        private readonly ILinkedInJobService _linkedInJobService;
 
         public ApiService(IConfiguration configuration, ILinkedInJobService linkedInJobService)
         {
@@ -67,14 +67,12 @@ namespace Cron_BolsaDeTrabajo.Services
             {
                 string endpoint = $"{_baseUrl}/search/filter";
 
-                var searchParams = new
-                {
-                    country = _configuration["SearchParams:Country"],
-                    application_active = bool.Parse(_configuration["SearchParams:ApplicationActive"]),
-                    deleted = bool.Parse(_configuration["SearchParams:Deleted"]),
-                    location = _configuration["SearchParams:Location"]
-                };
+                // Load SearchParams from configuration dynamically
+                var searchParams = _configuration.GetSection("SearchParams")
+                                                 .GetChildren()
+                                                 .ToDictionary(x => x.Key, x => (object)x.Value);
 
+                // Serialize the dictionary to JSON
                 string json = JsonSerializer.Serialize(searchParams);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
