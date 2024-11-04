@@ -15,7 +15,7 @@ namespace DDEyC_API.DataAccess.Services
         Task<List<JobListing>> GetJobListingsAsync(JobListingFilter filter);
     }
 
-  public class JobListingService : IJobListingService
+    public class JobListingService : IJobListingService
     {
         private readonly IJobListingRepository _repository;
         private readonly ILogger<JobListingService> _logger;
@@ -26,7 +26,7 @@ namespace DDEyC_API.DataAccess.Services
             _logger = logger;
         }
 
-        public async Task<List<JobListing>> GetJobListingsAsync(JobListingFilter filter)
+  public async Task<List<JobListing>> GetJobListingsAsync(JobListingFilter filter)
         {
             var builder = Builders<JobListing>.Filter;
             var filterDefinition = builder.Empty;
@@ -58,25 +58,60 @@ namespace DDEyC_API.DataAccess.Services
 
             if (filter.JobFunctions != null && filter.JobFunctions.Any())
             {
-                var jobFunctionFilters = filter.JobFunctions.Select(jf => 
-                    builder.ElemMatch("JobFunctions", CreateKeywordFilter("", jf))
-                );
-                filterDefinition &= builder.Or(jobFunctionFilters);
+                var jobFunctionFilters = filter.JobFunctions
+                    .Where(jf => !string.IsNullOrWhiteSpace(jf))
+                    .Select(jf =>
+                    {
+                        var keywords = TokenizeInput(jf);
+                        var keywordFilters = keywords.Select(keyword =>
+                        {
+                            var withoutDiacritics = RemoveDiacritics(keyword);
+                            var fuzzyPattern = CreateFuzzyPattern(withoutDiacritics);
+                            var pattern = $".*{fuzzyPattern}.*";
+                            
+                            return builder.Regex("job_functions_collection", new BsonRegularExpression(pattern, "i"));
+                        });
+                        
+                        return builder.And(keywordFilters);
+                    });
+                
+                if (jobFunctionFilters.Any())
+                {
+                    filterDefinition &= builder.Or(jobFunctionFilters);
+                }
             }
 
             if (filter.Industries != null && filter.Industries.Any())
             {
-                var industryFilters = filter.Industries.Select(industry =>
-                    builder.ElemMatch("JobIndustries", 
-                        CreateKeywordFilter("JobIndustryList.Industry", industry)
-                    )
-                );
-                filterDefinition &= builder.Or(industryFilters);
+                var industryFilters = filter.Industries
+                    .Where(industry => !string.IsNullOrWhiteSpace(industry))
+                    .Select(industry => 
+                    {
+                        var keywords = TokenizeInput(industry);
+                        var keywordFilters = keywords.Select(keyword =>
+                        {
+                            var withoutDiacritics = RemoveDiacritics(keyword);
+                            var fuzzyPattern = CreateFuzzyPattern(withoutDiacritics);
+                            var pattern = $".*{fuzzyPattern}.*";
+                            
+                            return builder.ElemMatch("job_industry_collection", 
+                                Builders<JobIndustry>.Filter.Regex(
+                                    "job_industry_list.industry", 
+                                    new BsonRegularExpression(pattern, "i")
+                                )
+                            );
+                        });
+                        
+                        return builder.And(keywordFilters);
+                    });
+
+                if (industryFilters.Any())
+                {
+                    filterDefinition &= builder.Or(industryFilters);
+                }
             }
 
             int limit = filter.Limit > 0 ? filter.Limit : 10;
-
-            _logger.LogInformation($"Executing query with filter: {filterDefinition.Render(BsonSerializer.LookupSerializer(typeof(JobListing)) as IBsonSerializer<JobListing>, null)}");
 
             var results = await _repository.GetJobListingsAsync(filterDefinition, limit);
 
@@ -84,7 +119,7 @@ namespace DDEyC_API.DataAccess.Services
 
             return results;
         }
-
+        
         private FilterDefinition<JobListing> CreateKeywordFilter(string fieldName, string value)
         {
             var builder = Builders<JobListing>.Filter;
@@ -102,12 +137,16 @@ namespace DDEyC_API.DataAccess.Services
                 );
             });
 
-            // Use OR between keywords to allow partial matches
             return builder.Or(keywordFilters);
         }
 
         private IEnumerable<string> TokenizeInput(string input)
         {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return Enumerable.Empty<string>();
+            }
+
             return input.ToLowerInvariant()
                 .Split(new[] { ' ', ',', ';', '-', '_' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(keyword => keyword.Trim())
@@ -116,6 +155,11 @@ namespace DDEyC_API.DataAccess.Services
 
         private static string RemoveDiacritics(string text)
         {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
             var normalizedString = text.Normalize(NormalizationForm.FormD);
             var stringBuilder = new StringBuilder();
 
@@ -133,9 +177,9 @@ namespace DDEyC_API.DataAccess.Services
 
         private static string CreateFuzzyPattern(string word)
         {
-            if (word.Length <= 3)
+            if (string.IsNullOrWhiteSpace(word) || word.Length <= 3)
             {
-                return Regex.Escape(word);
+                return Regex.Escape(word ?? string.Empty);
             }
 
             var sb = new StringBuilder();
