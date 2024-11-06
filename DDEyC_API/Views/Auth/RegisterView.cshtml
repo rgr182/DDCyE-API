@@ -9,104 +9,132 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"]</title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- jQuery CDN -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link href="~/Assets/css/RegisterView.css" rel="stylesheet" />
 </head>
 <body>
     <div class="w-100 d-flex flex-column justify-content-center align-items-center">
-        <div class="initialContent w-100">
+        <div class="initial-content w-100">
             @await Html.PartialAsync("HeaderPartial")
         </div>
-        <div class="mainTitle d-flex flex-column justify-content-center align-items-center w-100">
+        
+        <div class="main-title d-flex flex-column justify-content-center align-items-center w-100">
             <h1 class="font-monserrat text-white">Registrate</h1>
             <p class="font-monserrat text-white">Es rápido y sencillo.</p>
         </div>
-        @* required info *@
-        <div class="d-flex flex-column justify-content-center align-items-center w-75">
+
+        <!-- User Information Form -->
+        <form id="registration-form" class="w-75" novalidate>
+            <!-- Basic Information -->
             <div class="d-flex justify-content-between align-items-center w-100">
-                <input id="name" class="font-monserrat UserInfo mt-2 mb-2" type="text" placeholder="Nombre" required />
-                <input id="lastName" class="font-monserrat UserInfo mt-2 mb-2" type="text" placeholder="Apellido" required />
+                <input id="input-name" class="font-monserrat user-info mt-2 mb-2" type="text" placeholder="Nombre" required />
+                <input id="input-lastname" class="font-monserrat user-info mt-2 mb-2" type="text" placeholder="Apellido" required />
             </div>
+
+            <!-- Contact and Security -->
             <div class="d-block w-100">
-                <input id="email" class="font-monserrat dialogo" type="email" placeholder="correo electrónico" required />
-                <input id="Password" class="font-monserrat dialogo" type="password" placeholder="contraseña" required />
-                <input id="ConfirmPassword" class="font-monserrat dialogo" type="password" placeholder="confirmar contraseña" required />
+                <input id="input-email" class="font-monserrat dialog" type="email" placeholder="correo electrónico" required />
+                <input id="input-password" class="font-monserrat dialog" type="password" placeholder="contraseña" required />
+                <input id="input-confirm-password" class="font-monserrat dialog" type="password" placeholder="confirmar contraseña" required />
             </div>
-        </div>
-        <div class="font-monserrat d-flex flex-column justify-content-center align-items-center w-75">
-            <p class="font-monserrat adviceText fw-bold text-center">Para proteger tu cuenta, elige una contraseña segura que combine letras mayúsculas y minúsculas, números y simbolos. Esto hará que sea más dificil de adivinar y mucho más segura.</p>
-        </div>
-        @* birthDate *@
-        <div class="w-75 d-flex flex-column mt-2 mb-2">
-            <h3>Fecha de nacimiento</h3>
-            <div class="w-100 d-flex justify-content-between">
-                <div class="w-100 dropdown d-inline-block">
-                    <button class="birthdayButton btn dropdown-toggle d-flex justify-content-between align-items-center" type="button" id="dropdownDay" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span id="dayDisplay" class="font-monserrat">Día</span>
-                        <span class="dropdown-arrow"></span>
-                    </button>
-                    <ul id="dayOptions" class="dropdown-menu" aria-labelledby="dropdownDay">
-                        <!-- Days will be populated by JavaScript -->
-                    </ul>
-                </div>
-                <div class="w-100 dropdown d-inline-block mx-2">
-                    <button class="birthdayButton btn dropdown-toggle d-flex justify-content-between align-items-center" type="button" id="dropdownMonth" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span id="monthDisplay" class="font-monserrat">Mes</span>
-                        <span class="dropdown-arrow"></span>
-                    </button>
-                    <ul id="monthOptions" class="dropdown-menu" aria-labelledby="dropdownMonth">
-                        <!-- Months will be populated by JavaScript -->
-                    </ul>
-                </div>
-                <div class="w-100 dropdown d-inline-block">
-                    <button class="birthdayButton btn dropdown-toggle d-flex justify-content-between align-items-center" type="button" id="dropdownYear" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span id="yearDisplay" class="font-monserrat">Año</span>
-                        <span class="dropdown-arrow"></span>
-                    </button>
-                    <ul id="yearOptions" class="dropdown-menu" aria-labelledby="dropdownYear">
-                        <!-- Years will be populated by JavaScript -->
-                    </ul>
+
+            <!-- Password Advice -->
+            <div class="font-monserrat d-flex flex-column justify-content-center align-items-center w-100">
+                <p class="font-monserrat advice-text fw-bold text-center">
+                    Para proteger tu cuenta, elige una contraseña segura que combine letras mayúsculas y minúsculas, 
+                    números y simbolos. Esto hará que sea más dificil de adivinar y mucho más segura.
+                </p>
+            </div>
+
+            <!-- Birth Date Section -->
+            <div class="w-100 d-flex flex-column mt-2 mb-2">
+                <h3>Fecha de nacimiento</h3>
+                <div class="w-100 d-flex justify-content-between">
+                    <!-- Day Dropdown -->
+                    <div class="w-100 dropdown d-inline-block">
+                        <button class="birthday-button btn dropdown-toggle d-flex justify-content-between align-items-center" 
+                                type="button" 
+                                id="dropdown-day" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false">
+                            <span id="display-day" class="font-monserrat">Día</span>
+                            <span class="dropdown-arrow"></span>
+                        </button>
+                        <ul id="options-day" class="dropdown-menu" aria-labelledby="dropdown-day">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+
+                    <!-- Month Dropdown -->
+                    <div class="w-100 dropdown d-inline-block mx-2">
+                        <button class="birthday-button btn dropdown-toggle d-flex justify-content-between align-items-center" 
+                                type="button" 
+                                id="dropdown-month" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false">
+                            <span id="display-month" class="font-monserrat">Mes</span>
+                            <span class="dropdown-arrow"></span>
+                        </button>
+                        <ul id="options-month" class="dropdown-menu" aria-labelledby="dropdown-month">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+
+                    <!-- Year Dropdown -->
+                    <div class="w-100 dropdown d-inline-block">
+                        <button class="birthday-button btn dropdown-toggle d-flex justify-content-between align-items-center" 
+                                type="button" 
+                                id="dropdown-year" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false">
+                            <span id="display-year" class="font-monserrat">Año</span>
+                            <span class="dropdown-arrow"></span>
+                        </button>
+                        <ul id="options-year" class="dropdown-menu" aria-labelledby="dropdown-year">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="w-75 d-flex flex-column mt-2 mb-2">
-            <h3>Genero</h3>
-            <div class="w-100 d-flex justify-content-between">
-                <button class="font-monserrat gender" onclick="selectGender(this)">Mujer</button>
-                <button class="font-monserrat gender mx-2" onclick="selectGender(this)">Hombre</button>
-                <button class="font-monserrat gender" onclick="selectGender(this)">Otro</button>
+
+            <!-- Gender Selection -->
+            <div class="w-100 d-flex flex-column mt-2 mb-2">
+                <h3>Genero</h3>
+                <div class="w-100 d-flex justify-content-between">
+                    <button type="button" class="font-monserrat gender" data-gender="Mujer">Mujer</button>
+                    <button type="button" class="font-monserrat gender mx-2" data-gender="Hombre">Hombre</button>
+                    <button type="button" class="font-monserrat gender" data-gender="Otro">Otro</button>
+                </div>
             </div>
-        </div>
-        <div class="w-75 d-flex justify-content-between mt-2 mb-2">
-            <button type="button" class="font-monserrat RegisterButton bg-primary text-white border-0 rounded">Registrarme</button>
-            <button type="button" class="font-monserrat back bg-primary text-white border-0 rounded">Volver</button>
-        </div>
-        <!-- Success message -->
-        <div id="successMessage" class="w-50 justify-content-center align-items-center mt-5 alert alert-success text-center p-3" role="alert" style="display:none;">
-        </div>
-        <!-- Error message -->
-        <div class="alert alert-danger mt-3 w-50 text-center" id="errorMessage" style="display:none;">
-        </div>
-        @* logo *@
-        <div id="divLogo" class="d-flex h-100 mt-5 justify-content-center align-items-center">
-            <img id="logo" src="~/Assets/images/LOGOTIPO GOB MPAL.png" alt="logotipo_oficial_gob_chihuahua" />
+
+            <!-- Form Actions -->
+            <div class="w-100 d-flex justify-content-between mt-2 mb-2">
+                <button type="submit" class="font-monserrat register-button bg-primary text-white border-0 rounded">
+                    Registrarme
+                </button>
+                <button type="button" class="font-monserrat back-button bg-primary text-white border-0 rounded">
+                    Volver
+                </button>
+            </div>
+        </form>
+
+        <!-- Messages -->
+        <div id="message-success" class="alert alert-success w-50 text-center mt-3" style="display:none;"></div>
+        <div id="message-error" class="alert alert-danger w-50 text-center mt-3" style="display:none;"></div>
+
+        <!-- Logo -->
+        <div class="logo-container d-flex h-100 mt-5 justify-content-center align-items-center">
+            <img class="logo" src="~/Assets/images/LOGOTIPO GOB MPAL.png" alt="logotipo_oficial_gob_chihuahua" />
         </div>
     </div>
-    <script type="text/javascript">
-        const LOGINPAGE = "@Html.Raw(ViewData["LoginPageUrl"])";
-        const backButtonUrl = "@Configuration["Urls:LoginPageUrl"]";
 
-        // Asignar evento click al botón de "Volver"
-        document.querySelector('.back').addEventListener('click', function () {
-            window.location.href = backButtonUrl;
-        });
+    <!-- Scripts -->
+    <script>
+        const LOGINPAGE = "@Html.Raw(ViewData["LoginPageUrl"])";
+        const BACK_BUTTON_URL = "@Configuration["Urls:LoginPageUrl"]";
     </script>
     <script src="~/Assets/js/RegisterView.js"></script>
-
-    <!-- Bootstrap JS and Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/popper.js@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>

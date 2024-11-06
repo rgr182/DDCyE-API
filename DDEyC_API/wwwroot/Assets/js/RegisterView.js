@@ -1,6 +1,8 @@
-﻿var selectedGender = null;
-
-const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+﻿// Constants
+const MONTHS = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
 
 const ERROR_MESSAGES = {
     NAME_REQUIRED: "Por favor, ingrese su nombre.",
@@ -15,183 +17,189 @@ const ERROR_MESSAGES = {
     DEFAULT: "Ocurrió un error inesperado. Por favor, inténtelo de nuevo."
 };
 
-function selectGender(selectedButton) {
-    var buttons = document.querySelectorAll('.gender');
-    buttons.forEach(function (button) {
-        button.classList.remove('selected');
-    });
-    selectedButton.classList.add('selected');
-    selectedGender = selectedButton.textContent;
-}
+// State management
+let selectedGender = null;
 
+// Date handling functions
 function populateDateDropdowns() {
-    var currentYear = new Date().getFullYear();
+    const currentYear = new Date().getFullYear();
 
-    for (var i = 1; i <= 31; i++) {
-        $('#dayOptions').append(`<li><a class="dropdown-item" href="#" onclick="selectDateOption('dayDisplay', ${i})">${i}</a></li>`);
+    // Populate days
+    for (let i = 1; i <= 31; i++) {
+        $('#options-day').append(
+            `<li><button class="dropdown-item" type="button" data-value="${i}">${i}</button></li>`
+        );
     }
 
-    months.forEach(function (month) {
-        $('#monthOptions').append(`<li><a class="dropdown-item" href="#" onclick="selectDateOption('monthDisplay', '${month}')">${month}</a></li>`);
+    // Populate months
+    MONTHS.forEach((month, index) => {
+        $('#options-month').append(
+            `<li><button class="dropdown-item" type="button" data-value="${index + 1}">${month}</button></li>`
+        );
     });
 
-    for (var i = currentYear; i >= 1900; i--) {
-        $('#yearOptions').append(`<li><a class="dropdown-item" href="#" onclick="selectDateOption('yearDisplay', ${i})">${i}</a></li>`);
+    // Populate years
+    for (let i = currentYear; i >= 1900; i--) {
+        $('#options-year').append(
+            `<li><button class="dropdown-item" type="button" data-value="${i}">${i}</button></li>`
+        );
     }
 }
 
-function selectDateOption(elementId, value) {
-    document.getElementById(elementId).textContent = value;
+// Event Handlers
+function handleDateSelection() {
+    $('.dropdown-item').on('click', function(e) {
+        e.preventDefault();
+        const value = $(this).data('value');
+        const text = $(this).text();
+        const dropdownId = $(this).closest('.dropdown').find('span:first').attr('id');
+        $(`#${dropdownId}`).text(text);
+        $(`#${dropdownId}`).data('value', value);
+    });
 }
 
+function handleGenderSelection() {
+    $('.gender').on('click', function(e) {
+        e.preventDefault();
+        $('.gender').removeClass('selected');
+        $(this).addClass('selected');
+        selectedGender = $(this).data('gender');
+    });
+}
+
+// Form validation
+function validateForm() {
+    clearMessages();
+    const validationRules = [
+        {
+            condition: !$('#input-name').val().trim(),
+            message: ERROR_MESSAGES.NAME_REQUIRED,
+            field: 'input-name'
+        },
+        {
+            condition: !$('#input-lastname').val().trim(),
+            message: ERROR_MESSAGES.LASTNAME_REQUIRED,
+            field: 'input-lastname'
+        },
+        {
+            condition: !$('#input-email').val().trim(),
+            message: ERROR_MESSAGES.EMAIL_REQUIRED,
+            field: 'input-email'
+        },
+        {
+            condition: !$('#input-password').val(),
+            message: ERROR_MESSAGES.PASSWORD_REQUIRED,
+            field: 'input-password'
+        },
+        {
+            condition: $('#input-password').val() !== $('#input-confirm-password').val(),
+            message: ERROR_MESSAGES.PASSWORDS_MISMATCH,
+            field: 'input-confirm-password'
+        }
+    ];
+
+    const errors = validationRules.filter(rule => rule.condition);
+    if (errors.length > 0) {
+        errors.forEach(error => showErrorMessage(error.field, error.message));
+        return false;
+    }
+
+    return true;
+}
+
+// Message handling
 function showErrorMessage(fieldId, message) {
-    console.log(`Showing error for ${fieldId}: ${message}`);
-    let errorElement;
-    
-    if (fieldId === 'general') {
-        errorElement = $('#errorMessage');
-    } else {
-        errorElement = $(`#${fieldId}`).siblings('.error-message');
-    }
-    
+    const errorElement = $(`#${fieldId}`).siblings('.error-message');
     if (errorElement.length) {
         errorElement.text(message).show();
     } else {
-        console.error(`Error element not found for ${fieldId}`);
-        $('#errorMessage').text(message).show();
+        $('#message-error').text(message).show();
     }
 }
 
-function clearErrorMessages() {
-    console.log('Clearing all error messages');
+function showSuccessMessage(message) {
+    $('#message-success').text(message).show();
+}
+
+function clearMessages() {
     $('.error-message').text('').hide();
-    $('#errorMessage').text('').hide();
+    $('#message-error, #message-success').text('').hide();
 }
 
-function validateForm() {
-    let isValid = true;
-    clearErrorMessages();
-
-    const name = $("#name").val().trim();
-    const lastName = $("#lastName").val().trim();
-    const email = $('#email').val().trim();
-    const password = $('#Password').val();
-    const confirmPassword = $('#ConfirmPassword').val();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (name === "") {
-        showErrorMessage('name', ERROR_MESSAGES.NAME_REQUIRED);
-        isValid = false;
-    }
-    if (lastName === "") {
-        showErrorMessage('lastName', ERROR_MESSAGES.LASTNAME_REQUIRED);
-        isValid = false;
-    }
-    if (!email) {
-        showErrorMessage('email', ERROR_MESSAGES.EMAIL_REQUIRED);
-        isValid = false;
-    } else if (!emailRegex.test(email)) {
-        showErrorMessage('email', ERROR_MESSAGES.EMAIL_INVALID);
-        isValid = false;
-    }
-    if (password === "") {
-        showErrorMessage('Password', ERROR_MESSAGES.PASSWORD_REQUIRED);
-        isValid = false;
-    }
-    if (password !== confirmPassword) {
-        showErrorMessage('ConfirmPassword', ERROR_MESSAGES.PASSWORDS_MISMATCH);
-        isValid = false;
-    }
-
-    return isValid;
-}
-
+// Data collection
 function getBirthDate() {
-    const day = $("#dayDisplay").text() !== "Día" ? $("#dayDisplay").text() : null;
-    const month = $("#monthDisplay").text() !== "Mes" ? $("#monthDisplay").text() : null;
-    const year = $("#yearDisplay").text() !== "Año" ? $("#yearDisplay").text() : null;
+    const day = $('#display-day').data('value');
+    const month = $('#display-month').data('value');
+    const year = $('#display-year').data('value');
 
     if (day && month && year) {
-        const monthNumber = months.indexOf(month) + 1;
-        return `${year}-${monthNumber.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     }
 
     return null;
 }
 
+function collectFormData() {
+    return {
+        name: $('#input-name').val().trim(),
+        lastName: $('#input-lastname').val().trim(),
+        email: $('#input-email').val().trim(),
+        password: $('#input-password').val(),
+        birthDate: getBirthDate(),
+        gender: selectedGender
+    };
+}
+
+// API interaction
+function registerUser(userData) {
+    $.ajax({
+        url: '/api/User/register',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(userData),
+        success: (response) => {
+            showSuccessMessage('Registro realizado con éxito!');
+            if (response.redirectUrl) {
+                window.location.href = response.redirectUrl;
+            }
+        },
+        error: (xhr) => handleRegistrationError(xhr)
+    });
+}
+
 function handleRegistrationError(xhr) {
-    console.log('Handling registration error', xhr);
-    if (xhr.responseJSON && xhr.responseJSON.errors) {
-        const errors = xhr.responseJSON.errors;
-        Object.keys(errors).forEach(key => {
-            showErrorMessage(key, errors[key][0]);
+    if (xhr.responseJSON?.errors) {
+        Object.entries(xhr.responseJSON.errors).forEach(([key, [message]]) => {
+            showErrorMessage(key, message);
         });
-    } else if (xhr.responseJSON && xhr.responseJSON.errorCode) {
-        const errorCode = xhr.responseJSON.errorCode;
-        if (ERROR_MESSAGES[errorCode]) {
-            showErrorMessage('general', ERROR_MESSAGES[errorCode]);
-        } else {
-            showErrorMessage('general', ERROR_MESSAGES.DEFAULT);
-        }
+    } else if (xhr.responseJSON?.errorCode && ERROR_MESSAGES[xhr.responseJSON.errorCode]) {
+        showErrorMessage('general', ERROR_MESSAGES[xhr.responseJSON.errorCode]);
     } else if (xhr.status === 409) {
-        showErrorMessage('email', ERROR_MESSAGES.EMAIL_ALREADY_REGISTERED);
+        showErrorMessage('input-email', ERROR_MESSAGES.EMAIL_ALREADY_REGISTERED);
     } else {
         showErrorMessage('general', ERROR_MESSAGES.REGISTRATION_FAILED);
     }
 }
 
-function registerUser(userData) {
-    $.ajax({
-        url: "/api/User/register",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify(userData),
-        success: (response) => {
-            console.log('Registration successful', response);
-            $("#successMessage").text("Registro realizado con éxito!").show();
-            clearErrorMessages();
-
-            const redirectUrl = response.redirectUrl;
-                window.location.href = redirectUrl;
-        },
-        error: function (xhr, status, error) {
-            console.log('Registration failed', xhr, status, error);
-            handleRegistrationError(xhr);
-        }
-    });
-}
-
-$(document).ready(function () {
+// Initialization
+$(document).ready(function() {
     populateDateDropdowns();
+    handleDateSelection();
+    handleGenderSelection();
 
-    $(".RegisterButton").on("click", function () {
-        console.log('Register button clicked');
-        if (!validateForm()) {
-            console.log('Form validation failed');
-            return;
+    // Form submission
+    $('#registration-form').on('submit', function(e) {
+        e.preventDefault();
+        if (validateForm()) {
+            registerUser(collectFormData());
         }
-
-        const userData = {
-            name: $("#name").val().trim(),
-            lastName: $("#lastName").val().trim(),
-            email: $('#email').val().trim(),
-            password: $('#Password').val()
-        };
-
-        const birthDate = getBirthDate();
-        if (birthDate) {
-            userData.birthDate = birthDate;
-        }
-
-        if (selectedGender) {
-            userData.gender = selectedGender;
-        }
-
-        registerUser(userData);
     });
 
-    $('#registrationForm input').on('input', function() {
-        console.log('Input changed, clearing errors');
-        clearErrorMessages();
+    // Back button
+    $('.back-button').on('click', () => {
+        window.location.href = BACK_BUTTON_URL;
     });
+
+    // Clear messages on input
+    $('input').on('input', clearMessages);
 });

@@ -3,22 +3,27 @@
 body {
     font-family: 'Montserrat', sans-serif;
 }
+
 .font-monserrat {
     font-family: 'Montserrat', sans-serif;
     font-size: 18px;
 }
-.mainTitle {
+
+.main-title {
     background-color: #007bff;
     height: 115px;
 }
-    .mainTitle h1 {
-        font-size: 36px;
-    }
-.UserInfo {
+
+.main-title h1 {
+    font-size: 36px;
+}
+
+.user-info {
     width: 45%;
     min-height: 50px;
 }
-.dialogo {
+
+.dialog {
     width: 100%;
     min-height: 50px;
     margin-top: 12px;
@@ -26,18 +31,24 @@ body {
     border: 1px solid gray;
     border-radius: 3px;
 }
-.birthdayButton{
+
+.birthday-button {
     width: 100%;
     border: 1px solid gray;
 }
-    .birthdayButton:hover {
-        background-color: #007bff;
-        color: white;
-    }
-#dayOptions, #monthOptions, #yearOptions {
+
+.birthday-button:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+#options-day,
+#options-month,
+#options-year {
     max-height: 170px;
     overflow-y: auto;
 }
+
 .gender {
     width: 100%;
     min-height: 50px;
@@ -46,60 +57,118 @@ body {
     border: 1px solid gray;
     border-radius: 3px;
 }
-    .gender:hover {
-        background-color: #007bff;
-        color: white;
-    }
-    .gender:active {
-        transform: scale(0.95);
-        transition: transform 0.1s ease;
-    }
-    .gender.selected {
-        font-weight:bold;
-        border: 2px solid #007bff;
-    }
-.RegisterButton, .back {
+
+.gender:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.gender:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+}
+
+.gender.selected {
+    font-weight: bold;
+    border: 2px solid #007bff;
+}
+
+.register-button,
+.back-button {
     width: 45%;
     min-width: 100px;
     min-height: 50px;
 }
-    .RegisterButton:active, .back:active {
-        transform: scale(0.95);
-        transition: transform 0.1s ease;
-    }
-#logo {
+
+.register-button:active,
+.back-button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+}
+
+.logo {
     width: 50%;
 }
+
+/* Responsive styles */
 @media (width <= 600px) {
-    .mainTitle {
-        background-color: #007bff;
+    .main-title {
         height: 80px;
     }
-        .mainTitle h1 {
-            font-size: 30px;
-            margin: 0;
-        }
-        .mainTitle p{
-            margin:0;
-        }
-    .UserInfo {
+
+    .main-title h1 {
+        font-size: 30px;
+        margin: 0;
+    }
+
+    .main-title p {
+        margin: 0;
+    }
+
+    .user-info {
         width: 45%;
         min-height: 40px;
     }
-    .dialogo {
+
+    .dialog {
         min-height: 40px;
         margin-top: 5px;
         margin-bottom: 5px;
     }
-    .adviceText{
-        font-size:12px;
-        margin:0;
+
+    .advice-text {
+        font-size: 12px;
+        margin: 0;
     }
+
     .gender {
         margin: 0;
     }
-    #logo {
+
+    .logo {
         margin: 20px 0 0;
         width: 75%;
     }
+}
+
+/* Custom dropdown styling */
+.dropdown-menu {
+    width: 100%;
+}
+
+.dropdown-item {
+    cursor: pointer;
+    padding: 8px 12px;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Error and success message styling */
+.error-message,
+#message-error,
+#message-success {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+}
+
+.error-message {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+#message-success {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+/* Form field styling */
+input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
