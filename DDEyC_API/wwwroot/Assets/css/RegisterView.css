@@ -7,8 +7,13 @@ body {
 .font-monserrat {
     font-family: 'Montserrat', sans-serif;
     font-size: 18px;
-}
 
+}
+#input-name, #input-lastname {
+    border-color: #CCCCCC;
+    border-width: 1px;
+    border-style: solid;
+}
 .main-title {
     background-color: #007bff;
     height: 115px;
@@ -28,8 +33,8 @@ body {
     min-height: 50px;
     margin-top: 12px;
     margin-bottom: 12px;
-    border: 1px solid gray;
-    border-radius: 3px;
+    border: 1px solid #CCCCCC;
+    border-radius: 1px;
 }
 
 .birthday-button {
