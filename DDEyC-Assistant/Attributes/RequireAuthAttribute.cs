@@ -12,9 +12,9 @@ namespace DDEyC_Assistant.Attributes
             var httpContext = context.HttpContext;
             var logger = httpContext.RequestServices.GetRequiredService<ILogger<RequireAuthAttribute>>();
             var authPolicy = httpContext.RequestServices.GetRequiredService<IAuthenticationPolicy>();
-            
+
             var token = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-            
+
             if (string.IsNullOrEmpty(token))
             {
                 logger.LogWarning("Authorization header is missing or empty. Request path: {Path}", httpContext.Request.Path);
@@ -29,13 +29,17 @@ namespace DDEyC_Assistant.Attributes
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{ddEycApiUrl}/api/auth/validateSession");
-                request.Headers.Add("Authorization", $"Bearer {token}");
-                
-                logger.LogDebug("Sending validation request to: {Url}", request.RequestUri);
-                
-                var response = await authPolicy.RetryPolicy.ExecuteAsync(
-                    () => httpClient.SendAsync(request));
+                // Move request creation inside the policy execution
+                var response = await authPolicy.RetryPolicy.ExecuteAsync(async () =>
+                {
+                    // Create a new request for each attempt
+                    var request = new HttpRequestMessage(HttpMethod.Get, $"{ddEycApiUrl}/api/auth/validateSession");
+                    request.Headers.Add("Authorization", $"Bearer {token}");
+
+                    logger.LogDebug("Sending validation request to: {Url}", request.RequestUri);
+
+                    return await httpClient.SendAsync(request);
+                });
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -47,7 +51,7 @@ namespace DDEyC_Assistant.Attributes
                     context.Result = new UnauthorizedResult();
                     return;
                 }
-                
+
                 logger.LogInformation(
                     "Token successfully validated for request path: {Path}",
                     httpContext.Request.Path
@@ -67,4 +71,5 @@ namespace DDEyC_Assistant.Attributes
             await next();
         }
     }
+
 }
