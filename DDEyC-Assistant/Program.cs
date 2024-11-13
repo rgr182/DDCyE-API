@@ -1,4 +1,6 @@
 using DDEyC_Assistant.Data;
+using DDEyC_Assistant.Extensions;
+using DDEyC_Assistant.Options;
 using DDEyC_Assistant.Repositories;
 using DDEyC_Assistant.Services;
 using DDEyC_Assistant.Services.Interfaces;
@@ -77,7 +79,11 @@ builder.Services.AddHostedService<MessageCleanupService>();
 // Logging and HttpClient
 builder.Services.AddLogging();
 builder.Services.AddHttpClient();
+//Auth
+var authOptions = builder.Configuration.GetSection("AuthenticationPolicy")
+    .Get<AuthenticationPolicyOptions>() ?? new AuthenticationPolicyOptions();
 
+builder.Services.AddAuthenticationPolicy(authOptions);
 // Add configuration for DDEyC API URL
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
