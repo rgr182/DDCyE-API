@@ -1,0 +1,47 @@
+{
+    "patterns": [
+      {
+        "level": "Postgrado",
+        "patterns": [
+          "doctorado",
+          "maestr[ií]a",
+          "post\\s*grado",
+          "ph\\.?\\s*d",
+          "master'?s?\\s+degree"
+        ]
+      },
+      {
+        "level": "Educación superior",
+        "patterns": [
+          "licenciatura",
+          "ingenier[ií]a",
+          "bachelor'?s?\\s+degree",
+          "bs\\s+in",
+          "b\\.s\\.",
+          "educaci[oó]n\\s+superior",
+          "título\\s+universitario",
+          "grado\\s+universitario"
+        ]
+      },
+      {
+        "level": "Educación media-superior",
+        "patterns": [
+          "preparatoria",
+          "bachillerato",
+          "educaci[oó]n\\s+media\\s+superior",
+          "high\\s+school",
+          "technical\\s+degree"
+        ]
+      },
+      {
+        "level": "Educación básica",
+        "patterns": [
+          "primaria",
+          "secundaria",
+          "educaci[oó]n\\s+b[aá]sica",
+          "elementary",
+          "middle\\s+school"
+        ]
+      }
+    ]
+  }

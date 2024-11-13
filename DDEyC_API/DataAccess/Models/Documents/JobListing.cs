@@ -1,3 +1,4 @@
+using DDEyC_API.Models.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
@@ -8,8 +9,7 @@ namespace DDEyC_API.Models
     public class JobListing
     {
         [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string Id { get; set; }
+        public ObjectId Id { get; set; }
 
         [BsonElement("id")]
         public int JobId { get; set; }
@@ -30,7 +30,8 @@ namespace DDEyC_API.Models
 
         [BsonElement("description")]
         public string Description { get; set; }
-
+        [BsonElement("academic_level")]
+        public string? AcademicLevel { get; set; }
         [BsonElement("seniority")]
         public string Seniority { get; set; }
 
@@ -85,6 +86,12 @@ namespace DDEyC_API.Models
 
         [BsonElement("job_industry_collection")]
         public List<JobIndustry> JobIndustries { get; set; }
+        [BsonElement("academic_levels")]
+        public List<AcademicLevel>? AcademicLevels { get; set; }
+
+        [BsonElement("minimum_academic_level")]
+        public AcademicLevel? MinimumAcademicLevel { get; set; }
+
     }
 
     public class JobIndustry
@@ -105,12 +112,12 @@ namespace DDEyC_API.Models
         {
             var bsonReader = context.Reader;
             var stringValue = bsonReader.ReadString();
-            
+
             if (DateTime.TryParseExact(stringValue, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime result))
             {
                 return result;
             }
-            
+
             // If the custom format fails, fall back to the default parsing
             return DateTime.Parse(stringValue);
         }
