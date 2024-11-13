@@ -22,11 +22,12 @@ namespace DDEyC_API.DataAccess.Services
         private readonly IJobListingRepository _repository;
         private readonly ILogger<JobListingService> _logger;
         private readonly Dictionary<string, string[]> _academicPatterns;
+        private readonly Dictionary<string, int> _academicLevelIds;
         public JobListingService(IJobListingRepository repository, ILogger<JobListingService> logger, IConfiguration configuration)
         {
             _repository = repository;
             _logger = logger;
-            _academicPatterns = LoadAcademicPatterns(configuration);
+            (_academicPatterns, _academicLevelIds) = LoadAcademicPatterns(configuration);
 
         }
 
@@ -147,15 +148,22 @@ namespace DDEyC_API.DataAccess.Services
                     {
                         try
                         {
-                            var academicLevel = DetectAcademicLevel(doc.Description);
+                            var (levels, minimumLevel) = DetectAcademicLevels(doc.Description);
 
-                            // Use JobId instead of Id for the filter
+                            // Build update definition specifically for numeric values
                             var filter = Builders<JobListing>.Filter.Eq("id", doc.JobId);
+                            var updateDefinition = new BsonDocument
+                        {
+                            {
+                                "$set", new BsonDocument
+                                {
+                                    { "academic_levels", new BsonArray(levels.Select(l => new BsonInt32(l))) },
+                                    { "minimum_academic_level", new BsonInt32(minimumLevel) }
+                                }
+                            }
+                        };
 
-                            var update = Builders<JobListing>.Update
-                                .Set("academic_level", academicLevel);
-
-                            bulkOps.Add(new UpdateOneModel<JobListing>(filter, update));
+                            bulkOps.Add(new UpdateOneModel<JobListing>(filter, updateDefinition));
 
                             if (bulkOps.Count >= batchSize)
                             {
@@ -187,7 +195,7 @@ namespace DDEyC_API.DataAccess.Services
                 throw;
             }
         }
-        private FilterDefinition<JobListing> CreateKeywordFilter(string fieldName, string value)
+        FilterDefinition<JobListing> CreateKeywordFilter(string fieldName, string value)
         {
             var builder = Builders<JobListing>.Filter;
             var keywords = TokenizeInput(value);
@@ -262,25 +270,31 @@ namespace DDEyC_API.DataAccess.Services
 
             return sb.ToString();
         }
-        private string? DetectAcademicLevel(string description)
+        private (List<int> levels, int minimumLevel) DetectAcademicLevels(string description)
         {
             if (string.IsNullOrEmpty(description))
-                return null;
+                return (new List<int>(), 0);
 
-            description = description.ToLowerInvariant();
+            description = PreprocessDescription(description);
+            var detectedLevels = new List<int>();
 
             foreach (var level in _academicPatterns)
             {
                 if (level.Value.Any(pattern =>
                     Regex.IsMatch(description, pattern, RegexOptions.IgnoreCase)))
                 {
-                    return level.Key;
+                    var levelId = _academicLevelIds[level.Key];
+                    detectedLevels.Add(levelId);
+                    _logger.LogDebug("Found academic level {Level} (ID: {Id}) in description", level.Key, levelId);
                 }
             }
 
-            return null;
+            var minimumLevel = detectedLevels.Any() ? detectedLevels.Min() : 0;
+
+            return (detectedLevels, minimumLevel);
         }
-        private Dictionary<string, string[]> LoadAcademicPatterns(IConfiguration configuration)
+
+        private (Dictionary<string, string[]> patterns, Dictionary<string, int> levelIds) LoadAcademicPatterns(IConfiguration configuration)
         {
             try
             {
@@ -291,13 +305,26 @@ namespace DDEyC_API.DataAccess.Services
                 }
 
                 var jsonContent = File.ReadAllText(patternsPath);
-                var patterns = JsonSerializer.Deserialize<AcademicLevelPatternConfiguration>(
+                var patternsConfig = JsonSerializer.Deserialize<AcademicLevelPatternConfiguration>(
                     jsonContent,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
                 );
 
-                return patterns?.Patterns.ToDictionary(p => p.Level, p => p.Patterns)
-                    ?? new Dictionary<string, string[]>();
+                if (patternsConfig?.Patterns == null || !patternsConfig.Patterns.Any())
+                {
+                    throw new InvalidOperationException("No patterns found in configuration file");
+                }
+
+                var patterns = patternsConfig.Patterns.ToDictionary(p => p.Level, p => p.Patterns);
+                var levelIds = new Dictionary<string, int>();
+
+                // Assign IDs based on order in config (1-based)
+                for (int i = 0; i < patternsConfig.Patterns.Count; i++)
+                {
+                    levelIds[patternsConfig.Patterns[i].Level] = i + 1;
+                }
+
+                return (patterns, levelIds);
             }
             catch (Exception ex)
             {
@@ -305,7 +332,6 @@ namespace DDEyC_API.DataAccess.Services
                 throw;
             }
         }
-
 
         private void UpdateStats(MigrationStats stats, int processedCount, long modifiedCount)
         {
@@ -328,6 +354,23 @@ namespace DDEyC_API.DataAccess.Services
                 stats.Updated,
                 stats.NoChanges,
                 stats.Errors);
+        }
+        private string PreprocessDescription(string description)
+        {
+            if (string.IsNullOrEmpty(description))
+                return string.Empty;
+
+            // Normalize spaces and line endings
+            description = Regex.Replace(description, @"\s+", " ");
+
+            // Normalize common variations
+            description = description
+                .Replace("b.s.", "bs")
+                .Replace("m.s.", "ms")
+                .Replace("ph.d.", "phd")
+                .Replace("m.b.a.", "mba");
+
+            return description.ToLowerInvariant().Trim();
         }
     }
 }

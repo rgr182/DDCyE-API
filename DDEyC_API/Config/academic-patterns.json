@@ -1,47 +1,60 @@
 {
-    "patterns": [
-      {
-        "level": "Postgrado",
-        "patterns": [
-          "doctorado",
-          "maestr[ií]a",
-          "post\\s*grado",
-          "ph\\.?\\s*d",
-          "master'?s?\\s+degree"
-        ]
-      },
-      {
-        "level": "Educación superior",
-        "patterns": [
-          "licenciatura",
-          "ingenier[ií]a",
-          "bachelor'?s?\\s+degree",
-          "bs\\s+in",
-          "b\\.s\\.",
-          "educaci[oó]n\\s+superior",
-          "título\\s+universitario",
-          "grado\\s+universitario"
-        ]
-      },
-      {
-        "level": "Educación media-superior",
-        "patterns": [
-          "preparatoria",
-          "bachillerato",
-          "educaci[oó]n\\s+media\\s+superior",
-          "high\\s+school",
-          "technical\\s+degree"
-        ]
-      },
-      {
-        "level": "Educación básica",
-        "patterns": [
-          "primaria",
-          "secundaria",
-          "educaci[oó]n\\s+b[aá]sica",
-          "elementary",
-          "middle\\s+school"
-        ]
-      }
-    ]
-  }
+  "patterns": [
+    {
+      "level": "Postgrado",
+      "patterns": [
+        "\\b(?:doctorado|doctoral)\\b",
+        "\\bph\\.?\\s*d\\b",
+        "\\bmaest?r[iíÍ]a\\b",
+        "\\bmaster['\u2018\u2019]?s?\\s+degree\\b",
+        "\\bm\\.?\\s*b\\.?\\s*a\\.?\\b",
+        "\\bpost\\s*grado\\b",
+        "\\bpos\\s*grado\\b",
+        "\\bgraduate\\s+degree\\b"
+      ]
+    },
+    {
+      "level": "Educación superior",
+      "patterns": [
+        "\\b(?:licenciatura|licenciado)\\b",
+        "\\bingenie(?:r[iíÍ]a|ro)\\b",
+        "\\bing\\.\\s+en\\b",
+        "\\bbachelor['\u2018\u2019]?s?(?:\\s+degree)?\\b",
+        "\\bb\\.?\\s*s\\.?(?:\\s+in)?\\b",
+        "\\bb\\.?\\s*a\\.?\\b",
+        "\\bcollege\\s+degree\\b",
+        "\\buniversity\\s+degree\\b",
+        "\\beducaci[oóÓ]n\\s+superior\\b",
+        "\\bt[iíÍ]tulo\\s+(?:universitario|profesional)\\b",
+        "\\bgrado\\s+(?:universitario|profesional)\\b",
+        "\\bprofesional\\s+titulado\\b",
+        "\\bcarrera\\s+(?:universitaria|profesional)\\b",
+        "\\bgraduado\\s+(?:universitario|de)\\b"
+      ]
+    },
+    {
+      "level": "Educación media-superior",
+      "patterns": [
+        "\\bpreparatoria\\b",
+        "\\bprepa\\b",
+        "\\bbachillerato\\b",
+        "\\beducaci[oóÓ]n\\s+media\\s*(?:[-\\s]\\s*superior)?\\b",
+        "\\bhigh\\s+school(?:\\s+diploma)?\\b",
+        "\\btechnical(?:\\s+degree|\\s+diploma)\\b",
+        "\\bt[eéÉ]cnico\\s+(?:superior|medio|en)\\b",
+        "\\btechnical\\s+school\\b",
+        "\\bassociate['\u2018\u2019]?s?\\s+degree\\b"
+      ]
+    },
+    {
+      "level": "Educación básica",
+      "patterns": [
+        "\\bprimaria\\b",
+        "\\belementary(?:\\s+school)?\\b",
+        "\\bsecundaria\\b",
+        "\\bmiddle\\s+school\\b",
+        "\\beducaci[oóÓ]n\\s+b[aáÁ]sica\\b"
+      ]
+    }
+  ]
+}

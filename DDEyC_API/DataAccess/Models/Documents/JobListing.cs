@@ -1,4 +1,4 @@
-using DDEyC_API.Models.Enums;
+
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
@@ -87,10 +87,12 @@ namespace DDEyC_API.Models
         [BsonElement("job_industry_collection")]
         public List<JobIndustry> JobIndustries { get; set; }
         [BsonElement("academic_levels")]
-        public List<AcademicLevel>? AcademicLevels { get; set; }
+        [BsonRepresentation(BsonType.Int32)]
+        public List<int>? AcademicLevels { get; set; }
 
         [BsonElement("minimum_academic_level")]
-        public AcademicLevel? MinimumAcademicLevel { get; set; }
+        [BsonRepresentation(BsonType.Int32)]
+        public int MinimumAcademicLevel { get; set; }
 
     }
 
