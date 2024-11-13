@@ -16,7 +16,13 @@ namespace Cron_BolsaDeTrabajo
 
 #if TESTING
             // Execute testing method if in testing profile
-            cronService.ExecuteTaskAsync().Wait();
+            //cronService.ExtractJobOffers().Wait();
+
+            /// Uncomment the following line to execute the URL validation method.
+            /// This will invoke the `CheckJobUrlsAsync` method to verify the accessibility of each job URL in the database,
+            /// logging any URL that returns an error status or fails to respond.
+
+             cronService.CheckJobUrlsAsync().Wait();
 #else
             // Start the Cron Service
             cronService.StartAsync().Wait();

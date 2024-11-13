@@ -1,4 +1,5 @@
 ﻿using Cron_BolsaDeTrabajo.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -7,14 +8,17 @@ namespace Cron_BolsaDeTrabajo.Services
     public interface ILinkedInJobService
     {
         Task<List<string>> GetLinkedInJobIdsFromDBAsync();
+        Task<List<string>> GetLinkedInJobUrlsFromDBAsync();
     }
 
     public class LinkedInJobService : ILinkedInJobService
     {
         private readonly IMongoDbConnection _mongoDbConnection;
+        string _collectionName;
 
-        public LinkedInJobService(IMongoDbConnection mongoDbConnection)
+        public LinkedInJobService(IMongoDbConnection mongoDbConnection, IConfiguration configuration)
         {
+            _collectionName = configuration["MongoDB:CollectionName"];
             _mongoDbConnection = mongoDbConnection;
         }
 
@@ -24,7 +28,7 @@ namespace Cron_BolsaDeTrabajo.Services
 
             try
             {
-                var collection = _mongoDbConnection.GetCollection<BsonDocument>("OfertasLaborales");
+                var collection = _mongoDbConnection.GetCollection<BsonDocument>(_collectionName);
 
                 // Filter to get documents containing the "id" field
                 var filter = Builders<BsonDocument>.Filter.Exists("id");
@@ -59,5 +63,46 @@ namespace Cron_BolsaDeTrabajo.Services
 
             return jobIds;
         }
+
+        public async Task<List<string>> GetLinkedInJobUrlsFromDBAsync()
+        {
+            var jobUrls = new List<string>();
+
+            try
+            {
+                var collection = _mongoDbConnection.GetCollection<BsonDocument>(_collectionName);
+
+                // Filtro para obtener documentos que contengan el campo "url"
+                var filter = Builders<BsonDocument>.Filter.Exists("url");
+                var projection = Builders<BsonDocument>.Projection.Include("url").Exclude("_id");
+
+                // Recuperar documentos que coincidan con el filtro
+                var result = await collection.Find(filter).Project(projection).ToListAsync();
+
+                // Extraer las URLs de los documentos recuperados
+                foreach (var document in result)
+                {
+                    if (document.Contains("url"))
+                    {
+                        var urlValue = document["url"];
+
+                        var urlString = urlValue.BsonType switch
+                        {
+                            BsonType.String => urlValue.AsString,
+                            _ => throw new InvalidOperationException($"Unexpected URL type: {urlValue.BsonType}")
+                        };
+
+                        jobUrls.Add(urlString);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error while fetching job URLs: {ex.Message}");
+            }
+
+            return jobUrls;
+        }
+
     }
 }

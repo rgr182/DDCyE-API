@@ -4,13 +4,15 @@ using MongoDB.Driver;
 using Cron_BolsaDeTrabajo.Infrastructure;
 using Cron_DDEyC.Utils;
 using NCrontab;
+using System.Net.Http;
 
 namespace Cron_BolsaDeTrabajo.Services
 {
     public interface ICronService
     {
-        Task StartAsync();        
-        Task ExecuteTaskAsync();
+        Task StartAsync();
+        Task ExtractJobOffers();
+        Task<List<string>> CheckJobUrlsAsync();
     }
 
     public class CronService : ICronService
@@ -22,6 +24,7 @@ namespace Cron_BolsaDeTrabajo.Services
         private Timer _timer;
         private readonly string _cronExpression;
         private readonly IConfiguration _configuration;
+        private readonly HttpClient _httpClient;
 
         public CronService(IMongoDbConnection mongoDbConnection, IApiService apiService, IConfiguration configuration, ILinkedInJobService linkedInJobService)
         {
@@ -29,6 +32,7 @@ namespace Cron_BolsaDeTrabajo.Services
             _apiService = apiService;
             _configuration = configuration;
             _linkedInJobService = linkedInJobService;
+            _httpClient = new HttpClient();
 
             // Setup MongoDB collection access
             var mongoCollectionName = _configuration["MongoDB:CollectionName"];
@@ -53,7 +57,7 @@ namespace Cron_BolsaDeTrabajo.Services
         {
             // Initialize timer based on the cron expression
             TimeSpan timeUntilNextRun = CalculateTimeUntilNextRun(_cronExpression);
-            _timer = new Timer(async _ => await ExecuteTaskAsync(), null, timeUntilNextRun, Timeout.InfiniteTimeSpan);
+            _timer = new Timer(async _ => await ExtractJobOffers(), null, timeUntilNextRun, Timeout.InfiniteTimeSpan);
             Console.WriteLine("Cron job initialized.");
         }
 
@@ -61,9 +65,9 @@ namespace Cron_BolsaDeTrabajo.Services
         {
             Console.WriteLine("Cron job started.");
             // Further implementation to start the cron job can be added here
-        }        
+        }
 
-        public async Task ExecuteTaskAsync()
+        public async Task ExtractJobOffers()
         {
             Console.WriteLine($"Executing task at {DateTime.Now}");
 
@@ -118,6 +122,47 @@ namespace Cron_BolsaDeTrabajo.Services
             }
         }
 
+        public async Task<List<string>> CheckJobUrlsAsync()
+        {
+            var errorUrls = new List<string>();
+
+            try
+            {
+                // Get job URLs from the LinkedInJobService
+                //var jobUrls = await _linkedInJobService.GetLinkedInJobUrlsFromDBAsync();
+
+                var jobUrls = new List<string> { "url" };
+
+                // Check each URL with an HTTP GET request
+                foreach (var url in jobUrls)
+                {
+                    try
+                    {
+                        var response = await _httpClient.GetAsync(url);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"Error fetching URL {url}, status code: {response.StatusCode}");
+                            errorUrls.Add(url);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Exception when fetching URL {url}: {ex.Message}");
+                        errorUrls.Add(url);
+                    }
+
+                    // Add delay between requests to avoid rate limiting
+                    await Task.Delay(750); // Delay of 750 ms
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error while checking job URLs: {ex.Message}");
+            }
+
+            return errorUrls;
+        }
+
 
         private TimeSpan CalculateTimeUntilNextRun(string cronExpression)
         {
@@ -128,5 +173,5 @@ namespace Cron_BolsaDeTrabajo.Services
 
             return nextRun - now;
         }
-    }    
+    }
 }
