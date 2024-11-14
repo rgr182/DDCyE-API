@@ -1,16 +1,27 @@
 {
   "patterns": [
     {
-      "level": "Postgrado",
+      "level": "Educación básica",
       "patterns": [
-        "\\b(?:doctorado|doctoral)\\b",
-        "\\bph\\.?\\s*d\\b",
-        "\\bmaest?r[iíÍ]a\\b",
-        "\\bmaster['\u2018\u2019]?s?\\s+degree\\b",
-        "\\bm\\.?\\s*b\\.?\\s*a\\.?\\b",
-        "\\bpost\\s*grado\\b",
-        "\\bpos\\s*grado\\b",
-        "\\bgraduate\\s+degree\\b"
+        "\\bprimaria\\b",
+        "\\belementary(?:\\s+school)?\\b",
+        "\\bsecundaria\\b",
+        "\\bmiddle\\s+school\\b",
+        "\\beducaci[oóÓ]n\\s+b[aáÁ]sica\\b"
+      ]
+    },
+    {
+      "level": "Educación media-superior",
+      "patterns": [
+        "\\bpreparatoria\\b",
+        "\\bprepa\\b",
+        "\\bbachillerato\\b",
+        "\\beducaci[oóÓ]n\\s+media\\s*(?:[-\\s]\\s*superior)?\\b",
+        "\\bhigh\\s+school(?:\\s+diploma)?\\b",
+        "\\btechnical(?:\\s+degree|\\s+diploma)\\b",
+        "\\bt[eéÉ]cnico\\s+(?:superior|medio|en)\\b",
+        "\\btechnical\\s+school\\b",
+        "\\bassociate['\u2018\u2019]?s?\\s+degree\\b"
       ]
     },
     {
@@ -31,29 +42,18 @@
         "\\bcarrera\\s+(?:universitaria|profesional)\\b",
         "\\bgraduado\\s+(?:universitario|de)\\b"
       ]
-    },
+    }, 
     {
-      "level": "Educación media-superior",
+      "level": "Postgrado",
       "patterns": [
-        "\\bpreparatoria\\b",
-        "\\bprepa\\b",
-        "\\bbachillerato\\b",
-        "\\beducaci[oóÓ]n\\s+media\\s*(?:[-\\s]\\s*superior)?\\b",
-        "\\bhigh\\s+school(?:\\s+diploma)?\\b",
-        "\\btechnical(?:\\s+degree|\\s+diploma)\\b",
-        "\\bt[eéÉ]cnico\\s+(?:superior|medio|en)\\b",
-        "\\btechnical\\s+school\\b",
-        "\\bassociate['\u2018\u2019]?s?\\s+degree\\b"
-      ]
-    },
-    {
-      "level": "Educación básica",
-      "patterns": [
-        "\\bprimaria\\b",
-        "\\belementary(?:\\s+school)?\\b",
-        "\\bsecundaria\\b",
-        "\\bmiddle\\s+school\\b",
-        "\\beducaci[oóÓ]n\\s+b[aáÁ]sica\\b"
+        "\\b(?:doctorado|doctoral)\\b",
+        "\\bph\\.?\\s*d\\b",
+        "\\bmaest?r[iíÍ]a\\b",
+        "\\bmaster['\u2018\u2019]?s?\\s+degree\\b",
+        "\\bm\\.?\\s*b\\.?\\s*a\\.?\\b",
+        "\\bpost\\s*grado\\b",
+        "\\bpos\\s*grado\\b",
+        "\\bgraduate\\s+degree\\b"
       ]
     }
   ]

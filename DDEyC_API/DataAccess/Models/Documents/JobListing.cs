@@ -72,8 +72,8 @@ namespace DDEyC_API.Models
         public string? ApplicantsCount { get; set; }
 
         [BsonElement("linkedin_job_id")]
-        [BsonRepresentation(BsonType.Int64)]
-        public long LinkedinJobId { get; set; }
+        
+        public dynamic LinkedinJobId { get; set; }
 
         [BsonElement("country")]
         public string Country { get; set; }

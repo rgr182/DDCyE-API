@@ -19,14 +19,12 @@ namespace DDEyC_API.Controllers
             _jobListingService = jobListingService;
             _logger = logger;
         }
-        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<List<JobListing>>> GetJobListings([FromQuery] JobListingFilter filter)
         {
             var jobListings = await _jobListingService.GetJobListingsAsync(filter);
             return Ok(jobListings);
         }
-        [AllowAnonymous]
         [HttpPost("academic-levels")]
         public async Task<ActionResult<MigrationStats>> AddAcademicLevels([FromQuery] int batchSize = 1000)
         {
