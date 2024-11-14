@@ -93,7 +93,6 @@ namespace DDEyC_API.Models
         [BsonElement("minimum_academic_level")]
         [BsonRepresentation(BsonType.Int32)]
         public int MinimumAcademicLevel { get; set; }
-
     }
 
     public class JobIndustry

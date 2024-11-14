@@ -28,7 +28,6 @@ namespace DDEyC_API.DataAccess.Services
             _repository = repository;
             _logger = logger;
             (_academicPatterns, _academicLevelIds) = LoadAcademicPatterns(configuration);
-
         }
 
         public async Task<List<JobListing>> GetJobListingsAsync(JobListingFilter filter)
@@ -180,7 +179,7 @@ namespace DDEyC_API.DataAccess.Services
                     }
                 }
 
-                if (bulkOps.Any())
+                if (bulkOps.Count > 0)
                 {
                     var result = await _repository.BulkUpdateAsync(bulkOps);
                     UpdateStats(stats, bulkOps.Count, result.ModifiedCount);
@@ -289,7 +288,7 @@ namespace DDEyC_API.DataAccess.Services
                 }
             }
 
-            var minimumLevel = detectedLevels.Any() ? detectedLevels.Min() : 0;
+            var minimumLevel = detectedLevels.Count > 0 ? detectedLevels.Min() : 0;
 
             return (detectedLevels, minimumLevel);
         }
