@@ -7,26 +7,30 @@ using DDEyC_API.DataAccess.Repositories;
 using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
+using System.Text.Json;
 
 namespace DDEyC_API.DataAccess.Services
 {
     public interface IJobListingService
     {
         Task<List<JobListing>> GetJobListingsAsync(JobListingFilter filter);
+        Task<MigrationStats> AddAcademicLevelsAsync(int batchSize = 1000);
     }
 
     public class JobListingService : IJobListingService
     {
         private readonly IJobListingRepository _repository;
         private readonly ILogger<JobListingService> _logger;
-
-        public JobListingService(IJobListingRepository repository, ILogger<JobListingService> logger)
+        private readonly Dictionary<string, string[]> _academicPatterns;
+        private readonly Dictionary<string, int> _academicLevelIds;
+        public JobListingService(IJobListingRepository repository, ILogger<JobListingService> logger, IConfiguration configuration)
         {
             _repository = repository;
             _logger = logger;
+            (_academicPatterns, _academicLevelIds) = LoadAcademicPatterns(configuration);
         }
 
-  public async Task<List<JobListing>> GetJobListingsAsync(JobListingFilter filter)
+        public async Task<List<JobListing>> GetJobListingsAsync(JobListingFilter filter)
         {
             var builder = Builders<JobListing>.Filter;
             var filterDefinition = builder.Empty;
@@ -68,13 +72,13 @@ namespace DDEyC_API.DataAccess.Services
                             var withoutDiacritics = RemoveDiacritics(keyword);
                             var fuzzyPattern = CreateFuzzyPattern(withoutDiacritics);
                             var pattern = $".*{fuzzyPattern}.*";
-                            
+
                             return builder.Regex("job_functions_collection", new BsonRegularExpression(pattern, "i"));
                         });
-                        
+
                         return builder.And(keywordFilters);
                     });
-                
+
                 if (jobFunctionFilters.Any())
                 {
                     filterDefinition &= builder.Or(jobFunctionFilters);
@@ -85,7 +89,7 @@ namespace DDEyC_API.DataAccess.Services
             {
                 var industryFilters = filter.Industries
                     .Where(industry => !string.IsNullOrWhiteSpace(industry))
-                    .Select(industry => 
+                    .Select(industry =>
                     {
                         var keywords = TokenizeInput(industry);
                         var keywordFilters = keywords.Select(keyword =>
@@ -93,15 +97,15 @@ namespace DDEyC_API.DataAccess.Services
                             var withoutDiacritics = RemoveDiacritics(keyword);
                             var fuzzyPattern = CreateFuzzyPattern(withoutDiacritics);
                             var pattern = $".*{fuzzyPattern}.*";
-                            
-                            return builder.ElemMatch("job_industry_collection", 
+
+                            return builder.ElemMatch("job_industry_collection",
                                 Builders<JobIndustry>.Filter.Regex(
-                                    "job_industry_list.industry", 
+                                    "job_industry_list.industry",
                                     new BsonRegularExpression(pattern, "i")
                                 )
                             );
                         });
-                        
+
                         return builder.And(keywordFilters);
                     });
 
@@ -119,17 +123,87 @@ namespace DDEyC_API.DataAccess.Services
 
             return results;
         }
-        
-        private FilterDefinition<JobListing> CreateKeywordFilter(string fieldName, string value)
+
+        public async Task<MigrationStats> AddAcademicLevelsAsync(int batchSize = 1000)
+        {
+            var stats = new MigrationStats
+            {
+                TotalProcessed = 0,
+                Updated = 0,
+                NoChanges = 0,
+                Errors = 0
+            };
+
+            try
+            {
+                _logger.LogInformation("Starting academic level detection process");
+
+                var cursor = await _repository.GetAllJobListingsAsync();
+                var bulkOps = new List<WriteModel<JobListing>>();
+
+                while (await cursor.MoveNextAsync())
+                {
+                    foreach (var doc in cursor.Current)
+                    {
+                        try
+                        {
+                            var (levels, minimumLevel) = DetectAcademicLevels(doc.Description);
+
+                            // Build update definition specifically for numeric values
+                            var filter = Builders<JobListing>.Filter.Eq("id", doc.JobId);
+                            var updateDefinition = new BsonDocument
+                        {
+                            {
+                                "$set", new BsonDocument
+                                {
+                                    { "academic_levels", new BsonArray(levels.Select(l => new BsonInt32(l))) },
+                                    { "minimum_academic_level", new BsonInt32(minimumLevel) }
+                                }
+                            }
+                        };
+
+                            bulkOps.Add(new UpdateOneModel<JobListing>(filter, updateDefinition));
+
+                            if (bulkOps.Count >= batchSize)
+                            {
+                                var result = await _repository.BulkUpdateAsync(bulkOps);
+                                UpdateStats(stats, bulkOps.Count, result.ModifiedCount);
+                                bulkOps.Clear();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Error processing document with JobId: {doc.JobId}");
+                            stats.Errors++;
+                        }
+                    }
+                }
+
+                if (bulkOps.Count > 0)
+                {
+                    var result = await _repository.BulkUpdateAsync(bulkOps);
+                    UpdateStats(stats, bulkOps.Count, result.ModifiedCount);
+                }
+
+                LogResults(stats);
+                return stats;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Academic level detection process failed");
+                throw;
+            }
+        }
+        FilterDefinition<JobListing> CreateKeywordFilter(string fieldName, string value)
         {
             var builder = Builders<JobListing>.Filter;
             var keywords = TokenizeInput(value);
-            
+
             var keywordFilters = keywords.Select(keyword =>
             {
                 var withoutDiacritics = RemoveDiacritics(keyword);
                 var fuzzyPattern = CreateFuzzyPattern(withoutDiacritics);
-                
+
                 return builder.Or(
                     builder.Regex(fieldName, new BsonRegularExpression($"{Regex.Escape(keyword)}", "i")),
                     builder.Regex(fieldName, new BsonRegularExpression($"{Regex.Escape(withoutDiacritics)}", "i")),
@@ -194,6 +268,108 @@ namespace DDEyC_API.DataAccess.Services
             }
 
             return sb.ToString();
+        }
+        private (List<int> levels, int minimumLevel) DetectAcademicLevels(string description)
+        {
+            if (string.IsNullOrEmpty(description))
+                return (new List<int>(), 0);
+
+            description = PreprocessDescription(description);
+            var detectedLevels = new List<int>();
+
+            foreach (var level in _academicPatterns)
+            {
+                if (level.Value.Any(pattern =>
+                    Regex.IsMatch(description, pattern, RegexOptions.IgnoreCase)))
+                {
+                    var levelId = _academicLevelIds[level.Key];
+                    detectedLevels.Add(levelId);
+                    _logger.LogDebug("Found academic level {Level} (ID: {Id}) in description", level.Key, levelId);
+                }
+            }
+
+            var minimumLevel = detectedLevels.Count > 0 ? detectedLevels.Min() : 0;
+
+            return (detectedLevels, minimumLevel);
+        }
+
+        private (Dictionary<string, string[]> patterns, Dictionary<string, int> levelIds) LoadAcademicPatterns(IConfiguration configuration)
+        {
+            try
+            {
+                var patternsPath = configuration["AcademicLevelPatterns:JsonPath"];
+                if (string.IsNullOrEmpty(patternsPath))
+                {
+                    throw new InvalidOperationException("Patterns configuration path not set");
+                }
+
+                var jsonContent = File.ReadAllText(patternsPath);
+                var patternsConfig = JsonSerializer.Deserialize<AcademicLevelPatternConfiguration>(
+                    jsonContent,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                );
+
+                if (patternsConfig?.Patterns == null || !patternsConfig.Patterns.Any())
+                {
+                    throw new InvalidOperationException("No patterns found in configuration file");
+                }
+
+                var patterns = patternsConfig.Patterns.ToDictionary(p => p.Level, p => p.Patterns);
+                var levelIds = new Dictionary<string, int>();
+
+                // Assign IDs based on order in config (1-based)
+                for (int i = 0; i < patternsConfig.Patterns.Count; i++)
+                {
+                    levelIds[patternsConfig.Patterns[i].Level] = i + 1;
+                }
+
+                return (patterns, levelIds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading academic patterns");
+                throw;
+            }
+        }
+
+        private void UpdateStats(MigrationStats stats, int processedCount, long modifiedCount)
+        {
+            stats.TotalProcessed += processedCount;
+            stats.Updated += (int)modifiedCount;
+            stats.NoChanges += processedCount - (int)modifiedCount;
+
+            _logger.LogInformation($"Processed batch of {processedCount} documents");
+        }
+
+        private void LogResults(MigrationStats stats)
+        {
+            _logger.LogInformation(
+                "Process completed:\n" +
+                "Total documents processed: {TotalProcessed}\n" +
+                "Documents updated: {Updated}\n" +
+                "Documents unchanged: {NoChanges}\n" +
+                "Errors: {Errors}",
+                stats.TotalProcessed,
+                stats.Updated,
+                stats.NoChanges,
+                stats.Errors);
+        }
+        private string PreprocessDescription(string description)
+        {
+            if (string.IsNullOrEmpty(description))
+                return string.Empty;
+
+            // Normalize spaces and line endings
+            description = Regex.Replace(description, @"\s+", " ");
+
+            // Normalize common variations
+            description = description
+                .Replace("b.s.", "bs")
+                .Replace("m.s.", "ms")
+                .Replace("ph.d.", "phd")
+                .Replace("m.b.a.", "mba");
+
+            return description.ToLowerInvariant().Trim();
         }
     }
 }
