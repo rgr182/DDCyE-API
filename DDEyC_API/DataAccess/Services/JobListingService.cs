@@ -274,7 +274,7 @@ namespace DDEyC_API.DataAccess.Services
                 if (i > 0) sb.Append(Regex.Escape(word[i - 1].ToString()));
                 sb.Append(Regex.Escape(word[i].ToString()));
                 if (i < word.Length - 1) sb.Append(Regex.Escape(word[i + 1].ToString()));
-                sb.Append("]");
+                sb.Append(']');
             }
 
             return sb.ToString();
