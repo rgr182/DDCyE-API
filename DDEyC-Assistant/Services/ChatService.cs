@@ -413,15 +413,19 @@ public class ChatService : IChatService
     }
     private Dictionary<string, string> BuildJobListingQueryParams(JobListingFilter args)
     {
-        var queryParams = new Dictionary<string, string>
-        {
-            { nameof(JobListingFilter.Title), args.Title },
-            { nameof(JobListingFilter.CompanyName), args.CompanyName },
-            { nameof(JobListingFilter.Location), args.Location },
-            { nameof(JobListingFilter.Seniority), args.Seniority },
-            { nameof(JobListingFilter.EmploymentType), args.EmploymentType },
-            { nameof(JobListingFilter.Limit), args.Limit.ToString() }
-        };
+        var queryParams = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(args.Title))
+            queryParams.Add("Title", args.Title);
+        if (!string.IsNullOrEmpty(args.CompanyName))
+            queryParams.Add("CompanyName", args.CompanyName);
+        if (!string.IsNullOrEmpty(args.Location))
+            queryParams.Add("Location", args.Location);
+        if (!string.IsNullOrEmpty(args.Seniority))
+            queryParams.Add("Seniority", args.Seniority);
+        if (!string.IsNullOrEmpty(args.EmploymentType))
+            queryParams.Add("EmploymentType", args.EmploymentType);
+
+        queryParams.Add("Limit", args.Limit.ToString());
 
         queryParams = queryParams
             .Where(kvp => !string.IsNullOrEmpty(kvp.Value))
@@ -442,7 +446,17 @@ public class ChatService : IChatService
                 queryParams.Add("Industries", industry);
             }
         }
-
+        if (args.AcademicLevels?.Any() == true)
+        {
+            foreach (var level in args.AcademicLevels.OrderBy(x => x))
+            {
+                queryParams.Add("AcademicLevels", level.ToString());
+            }
+        }
+        if (args.MinimumAcademicLevel != 0)
+        {
+            queryParams.Add("MinimumAcademicLevel", args.MinimumAcademicLevel.ToString());
+        }
         return queryParams;
     }
 

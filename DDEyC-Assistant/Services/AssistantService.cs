@@ -9,19 +9,19 @@ namespace DDEyC_Assistant.Services
     public class AssistantService : IAssistantService
     {
         private readonly OpenAIClient _openAiClient;
-        private readonly string _assistantId;
+        private readonly string? _assistantId;
         private readonly ILogger<AssistantService> _logger;
 
         public AssistantService(IConfiguration configuration, ILogger<AssistantService> logger)
         {
-            string apiKey = Environment.GetEnvironmentVariable("MY_OPEN_AI_API_KEY");
+            _logger = logger;
+            string? apiKey = Environment.GetEnvironmentVariable("MY_OPEN_AI_API_KEY");
             if (string.IsNullOrEmpty(apiKey))
             {
                 throw new InvalidOperationException("OpenAI API key is not set in environment variables.");
             }
             _openAiClient = new OpenAIClient(apiKey);
-            _assistantId = configuration["OpenAI-Identifiers:FormAssistant"];
-            _logger = logger;
+            _assistantId = configuration["OpenAI-Identifiers:FormAssistant"]?? "";
         }
 
         // Rest of the methods remain the same
@@ -64,7 +64,7 @@ namespace DDEyC_Assistant.Services
                     ToolCallId = a.ToolCallId,
                     FunctionName = a.FunctionName,
                     FunctionArguments = a.FunctionArguments
-                }).ToList()
+                }).ToList() ?? new List<RequiredActionEntity>()
             };
         }
 
@@ -85,13 +85,16 @@ namespace DDEyC_Assistant.Services
         public async Task<MessageEntity> GetLatestMessageAsync(string threadId)
         {
 #pragma warning disable OPENAI001
-            var messages = _openAiClient.GetAssistantClient().GetMessagesAsync(threadId);
-            var latestMessage = messages.GetAllValuesAsync().ToBlockingEnumerable().FirstOrDefault(); ;
+            var messages= await Task.Run(() => { 
+            return _openAiClient.GetAssistantClient().GetMessagesAsync(threadId);
+            });
+           
+            var latestMessage = messages.GetAllValuesAsync().ToBlockingEnumerable().FirstOrDefault(); 
 #pragma warning restore OPENAI001
 
             return latestMessage != null
-                ? new MessageEntity { Content = latestMessage.Content.FirstOrDefault()?.Text }
-                : null;
+                ? new MessageEntity { Content = latestMessage.Content.FirstOrDefault()?.Text ?? string.Empty }
+                : new MessageEntity();
         }
     }
 }

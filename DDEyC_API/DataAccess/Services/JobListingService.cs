@@ -115,6 +115,19 @@ namespace DDEyC_API.DataAccess.Services
                 }
             }
 
+            if (filter.AcademicLevels != null && filter.AcademicLevels.Any())
+            {
+                var maxUserLevel = filter.AcademicLevels.Max(); // Highest level the user has
+
+                var academicFilter = builder.And(
+                    // Job must have at least one matching academic level
+                    builder.AnyIn("academic_levels", filter.AcademicLevels),
+                    // Minimum required level must not be higher than user's max level
+                    builder.Lte("minimum_academic_level", maxUserLevel)
+                );
+
+                filterDefinition &= academicFilter;
+            }
             int limit = filter.Limit > 0 ? filter.Limit : 10;
 
             var results = await _repository.GetJobListingsAsync(filterDefinition, limit);
@@ -213,7 +226,6 @@ namespace DDEyC_API.DataAccess.Services
 
             return builder.Or(keywordFilters);
         }
-
         private IEnumerable<string> TokenizeInput(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -226,7 +238,6 @@ namespace DDEyC_API.DataAccess.Services
                 .Select(keyword => keyword.Trim())
                 .Where(keyword => keyword.Length > 1);
         }
-
         private static string RemoveDiacritics(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -248,7 +259,6 @@ namespace DDEyC_API.DataAccess.Services
 
             return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
         }
-
         private static string CreateFuzzyPattern(string word)
         {
             if (string.IsNullOrWhiteSpace(word) || word.Length <= 3)
@@ -264,7 +274,7 @@ namespace DDEyC_API.DataAccess.Services
                 if (i > 0) sb.Append(Regex.Escape(word[i - 1].ToString()));
                 sb.Append(Regex.Escape(word[i].ToString()));
                 if (i < word.Length - 1) sb.Append(Regex.Escape(word[i + 1].ToString()));
-                sb.Append("]");
+                sb.Append(']');
             }
 
             return sb.ToString();
@@ -292,7 +302,6 @@ namespace DDEyC_API.DataAccess.Services
 
             return (detectedLevels, minimumLevel);
         }
-
         private (Dictionary<string, string[]> patterns, Dictionary<string, int> levelIds) LoadAcademicPatterns(IConfiguration configuration)
         {
             try
@@ -331,7 +340,6 @@ namespace DDEyC_API.DataAccess.Services
                 throw;
             }
         }
-
         private void UpdateStats(MigrationStats stats, int processedCount, long modifiedCount)
         {
             stats.TotalProcessed += processedCount;
@@ -340,7 +348,6 @@ namespace DDEyC_API.DataAccess.Services
 
             _logger.LogInformation($"Processed batch of {processedCount} documents");
         }
-
         private void LogResults(MigrationStats stats)
         {
             _logger.LogInformation(

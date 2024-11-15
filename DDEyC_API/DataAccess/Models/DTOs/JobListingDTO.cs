@@ -10,5 +10,7 @@ namespace DDEyC_API.Models.DTOs
         public List<string>? JobFunctions { get; set; }
         public List<string>? Industries { get; set; }
         public int Limit { get; set; } = 5; // Default limit
+        public List<int> AcademicLevels { get; set; } = new List<int>();
+        public int MinimumAcademicLevel { get; set; } = 0; 
     }
 }
