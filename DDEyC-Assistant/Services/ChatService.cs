@@ -118,17 +118,20 @@ public class ChatService : IChatService
             throw new ChatServiceException("Invalid thread for this user.", "INVALID_THREAD");
         }
 
-        // Try to acquire lock for this specific conversation
-        if (!await _lockManager.AcquireLock(chatRequest.ThreadId, TimeSpan.FromSeconds(2)))
-        {
-            throw new ChatServiceException(
-                "Esta conversación está procesando otro mensaje. Por favor, espere.",
-                "CONVERSATION_BUSY");
-        }
-
         Message userMessage = null;
+        var lockAcquired = false;
+
         try
         {
+            // Try to acquire lock for this specific conversation
+            lockAcquired = await _lockManager.AcquireLock(chatRequest.ThreadId, TimeSpan.FromSeconds(2));
+            if (!lockAcquired)
+            {
+                throw new ChatServiceException(
+                    "Esta conversación está procesando otro mensaje. Por favor, espere.",
+                    "CONVERSATION_BUSY");
+            }
+
             // Check if there's a pending operation
             var conversationState = await _chatRepository.GetConversationState(chatRequest.ThreadId);
             if (conversationState?.State == ConversationState.Processing)
@@ -208,6 +211,13 @@ public class ChatService : IChatService
                     Status = "success"
                 };
             }
+            catch (Exception ex) when (ex is TimeoutException || ex is TaskCanceledException ||
+                                     (ex is OpenAIServiceException oaiEx && oaiEx.ErrorCode == "TIMEOUT"))
+            {
+                _logger.LogError(ex, "Timeout occurred while processing chat message");
+                await CleanupOnFailure(userMessage?.Id);
+                throw new OpenAIServiceException("La operación ha excedido el tiempo de espera.", "TIMEOUT");
+            }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "Network error while communicating with OpenAI API");
@@ -226,13 +236,31 @@ public class ChatService : IChatService
                 await CleanupOnFailure(userMessage?.Id);
                 throw;
             }
+            finally
+            {
+                // Always ensure we update the conversation state on any failure
+                try
+                {
+                    await _chatRepository.UpdateConversationState(
+                        chatRequest.ThreadId,
+                        ConversationState.Idle,
+                        null);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating conversation state during cleanup");
+                }
+            }
         }
         finally
         {
-            _lockManager.ReleaseLock(chatRequest.ThreadId);
+            // Always release the lock if we acquired it
+            if (lockAcquired)
+            {
+                _lockManager.ReleaseLock(chatRequest.ThreadId);
+            }
         }
     }
-
     private async Task CleanupOnFailure(int? messageId)
     {
         if (messageId.HasValue)
