@@ -112,152 +112,196 @@ public class ChatService : IChatService
 
     public async Task<ChatResponseDto> ProcessChatAsync(ChatRequestDto chatRequest, int userId)
     {
-        var activeThread = await _chatRepository.GetActiveThreadForUser(userId);
-        if (activeThread == null || activeThread.ThreadId != chatRequest.ThreadId)
-        {
-            throw new ChatServiceException("Invalid thread for this user.", "INVALID_THREAD");
-        }
-
+        var activeThread = await ValidateAndGetActiveThread(userId, chatRequest.ThreadId);
         Message userMessage = null;
         var lockAcquired = false;
 
         try
         {
-            // Try to acquire lock for this specific conversation
-            lockAcquired = await _lockManager.AcquireLock(chatRequest.ThreadId, TimeSpan.FromSeconds(2));
-            if (!lockAcquired)
-            {
-                throw new ChatServiceException(
-                    "Esta conversación está procesando otro mensaje. Por favor, espere.",
-                    "CONVERSATION_BUSY");
-            }
+            lockAcquired = await AcquireConversationLock(chatRequest.ThreadId);
+            await ValidateAndUpdateConversationState(chatRequest.ThreadId);
 
-            // Check if there's a pending operation
-            var conversationState = await _chatRepository.GetConversationState(chatRequest.ThreadId);
-            if (conversationState?.State == ConversationState.Processing)
-            {
-                // Check for stale operations
-                if (DateTime.UtcNow - conversationState.LastOperation > _conversationTimeout)
-                {
-                    await _chatRepository.UpdateConversationState(
-                        chatRequest.ThreadId,
-                        ConversationState.Error,
-                        null);
-                }
-                else
-                {
-                    throw new ChatServiceException(
-                        "Esta conversación está procesando otro mensaje. Por favor, espere.",
-                        "PROCESSING_IN_PROGRESS");
-                }
-            }
-
-            // Mark conversation as processing
-            await _chatRepository.UpdateConversationState(
-                chatRequest.ThreadId,
-                ConversationState.Processing,
-                null);
-
-            try
-            {
-                await _assistantService.AddMessageToThreadAsync(
-                    chatRequest.ThreadId,
-                    chatRequest.UserMessage,
-                    MessageRole.User);
-
-                userMessage = await _chatRepository.AddMessage(
-                    activeThread.Id,
-                    chatRequest.UserMessage,
-                    MessageRole.User);
-
-                await _chatRepository.UpdateThreadLastUsed(activeThread.Id);
-
-                var run = await CreateAndRunAssistantWithRetryAsync(chatRequest.ThreadId);
-                if (run == null)
-                {
-                    throw new OpenAIServiceException(
-                        "Failed to create assistant response",
-                        "ASSISTANT_CREATE_FAILED");
-                }
-
-                await _chatRepository.UpdateConversationState(
-                    chatRequest.ThreadId,
-                    ConversationState.Processing,
-                    run.Id);
-
-                var (success, response) = await ProcessRunWithRetryAsync(chatRequest.ThreadId, run.Id);
-                if (!success || response == null)
-                {
-                    throw new OpenAIServiceException(
-                        "Failed to process assistant response",
-                        "RUN_PROCESSING_FAILED");
-                }
-
-                await _chatRepository.AddMessage(
-                    activeThread.Id,
-                    response.Content,
-                    MessageRole.Assistant);
-
-                await _chatRepository.UpdateConversationState(
-                    chatRequest.ThreadId,
-                    ConversationState.Idle,
-                    null);
-
-                return new ChatResponseDto
-                {
-                    MessageId = userMessage.Id,
-                    ThreadId = chatRequest.ThreadId,
-                    Response = response.Content,
-                    Status = "success"
-                };
-            }
-            catch (Exception ex) when (ex is TimeoutException || ex is TaskCanceledException ||
-                                     (ex is OpenAIServiceException oaiEx && oaiEx.ErrorCode == "TIMEOUT"))
-            {
-                _logger.LogError(ex, "Timeout occurred while processing chat message");
-                await CleanupOnFailure(userMessage?.Id);
-                throw new OpenAIServiceException("La operación ha excedido el tiempo de espera.", "TIMEOUT");
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "Network error while communicating with OpenAI API");
-                await CleanupOnFailure(userMessage?.Id);
-                throw OpenAIServiceException.NetworkError(ex);
-            }
-            catch (Exception ex) when (ex.Message.Contains("rate limit"))
-            {
-                _logger.LogError(ex, "Rate limit exceeded with OpenAI API");
-                await CleanupOnFailure(userMessage?.Id);
-                throw OpenAIServiceException.RateLimit();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing chat message");
-                await CleanupOnFailure(userMessage?.Id);
-                throw;
-            }
-            finally
-            {
-                // Always ensure we update the conversation state on any failure
-                try
-                {
-                    await _chatRepository.UpdateConversationState(
-                        chatRequest.ThreadId,
-                        ConversationState.Idle,
-                        null);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error updating conversation state during cleanup");
-                }
-            }
+            var (response, newUserMessage) = await ProcessChatMessageAsync(chatRequest, activeThread, userMessage);
+            userMessage = newUserMessage;
+            return response;
+        }
+        catch (Exception ex)
+        {
+            await HandleChatProcessingException(ex, userMessage?.Id);
+            return null; // This return is unreachable as HandleChatProcessingException always throws
         }
         finally
         {
-            // Always release the lock if we acquired it
+            await CleanupChatProcessing(chatRequest.ThreadId, lockAcquired);
+        }
+    }
+
+    private async Task<UserThread> ValidateAndGetActiveThread(int userId, string threadId)
+    {
+        var activeThread = await _chatRepository.GetActiveThreadForUser(userId);
+        if (activeThread == null || activeThread.ThreadId != threadId)
+        {
+            throw new ChatServiceException("Invalid thread for this user.", "INVALID_THREAD");
+        }
+        return activeThread;
+    }
+
+    private async Task<bool> AcquireConversationLock(string threadId)
+    {
+        var lockAcquired = await _lockManager.AcquireLock(threadId, TimeSpan.FromSeconds(2));
+        if (!lockAcquired)
+        {
+            throw new ChatServiceException(
+                "Invalid thread or thread is processing another message.",
+                "CONVERSATION_BUSY");
+        }
+        return lockAcquired;
+    }
+
+    private async Task ValidateAndUpdateConversationState(string threadId)
+    {
+        var conversationState = await _chatRepository.GetConversationState(threadId);
+        if (conversationState?.State == ConversationState.Processing)
+        {
+            if (DateTime.UtcNow - conversationState.LastOperation > _conversationTimeout)
+            {
+                await _chatRepository.UpdateConversationState(
+                    threadId,
+                    ConversationState.Error,
+                    null);
+            }
+            else
+            {
+                throw new ChatServiceException(
+                    "Invalid thread or thread is processing another message.",
+                    "PROCESSING_IN_PROGRESS");
+            }
+        }
+
+        await _chatRepository.UpdateConversationState(
+            threadId,
+            ConversationState.Processing,
+            null);
+    }
+
+    private async Task<(ChatResponseDto response, Message userMessage)> ProcessChatMessageAsync(
+        ChatRequestDto chatRequest,
+        UserThread activeThread,
+        Message initialUserMessage)
+    {
+        await _assistantService.AddMessageToThreadAsync(
+            chatRequest.ThreadId,
+            chatRequest.UserMessage,
+            MessageRole.User);
+
+        var userMessage = await _chatRepository.AddMessage(
+            activeThread.Id,
+            chatRequest.UserMessage,
+            MessageRole.User);
+
+        await _chatRepository.UpdateThreadLastUsed(activeThread.Id);
+
+        var (assistantResponse, runId) = await CreateAndProcessAssistantResponse(chatRequest.ThreadId);
+
+        var messageEntity = await _chatRepository.AddMessage(
+            activeThread.Id,
+            assistantResponse,
+            MessageRole.Assistant);
+
+        await _chatRepository.UpdateConversationState(
+            chatRequest.ThreadId,
+            ConversationState.Idle,
+            null);
+
+        return (new ChatResponseDto
+        {
+            MessageId = userMessage.Id,
+            ThreadId = chatRequest.ThreadId,
+            Response = assistantResponse,
+            Status = "success"
+        }, userMessage);
+    }
+
+    private async Task<(string response, string runId)> CreateAndProcessAssistantResponse(string threadId)
+    {
+        var run = await CreateAndRunAssistantWithRetryAsync(threadId);
+        if (run == null)
+        {
+            throw new OpenAIServiceException(
+                "Failed to create assistant response",
+                "ASSISTANT_CREATE_FAILED");
+        }
+
+        await _chatRepository.UpdateConversationState(
+            threadId,
+            ConversationState.Processing,
+            run.Id);
+
+        var (success, response) = await ProcessRunWithRetryAsync(threadId, run.Id);
+        if (!success || response == null)
+        {
+            throw new OpenAIServiceException(
+                "Failed to process assistant response",
+                "RUN_PROCESSING_FAILED");
+        }
+
+        return (response.Content, run.Id);
+    }
+
+    private async Task HandleChatProcessingException(Exception ex, int? messageId)
+    {
+        try
+        {
+            if (ex is TimeoutException || ex is TaskCanceledException ||
+                (ex is OpenAIServiceException oaiEx && oaiEx.ErrorCode == "TIMEOUT"))
+            {
+                _logger.LogError(ex, "Timeout occurred while processing chat message");
+                await CleanupOnFailure(messageId);
+                throw new OpenAIServiceException("La operación ha excedido el tiempo de espera.", "TIMEOUT");
+            }
+
+            if (ex is HttpRequestException)
+            {
+                _logger.LogError(ex, "Network error while communicating with OpenAI API");
+                await CleanupOnFailure(messageId);
+                throw OpenAIServiceException.NetworkError(ex);
+            }
+
+            if (ex.Message.Contains("rate limit"))
+            {
+                _logger.LogError(ex, "Rate limit exceeded with OpenAI API");
+                await CleanupOnFailure(messageId);
+                throw OpenAIServiceException.RateLimit();
+            }
+
+            _logger.LogError(ex, "Error processing chat message");
+            await CleanupOnFailure(messageId);
+            throw new OpenAIServiceException("Error processing chat message", "PROCESSING_FAILED");
+        }
+        catch (Exception handlingEx)
+        {
+            _logger.LogError(handlingEx, "Error handling chat processing exception");
+            throw;
+        }
+    }
+    private async Task CleanupChatProcessing(string threadId, bool lockAcquired)
+    {
+        try
+        {
+            await _chatRepository.UpdateConversationState(
+                threadId,
+                ConversationState.Idle,
+                null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating conversation state during cleanup");
+        }
+        finally
+        {
             if (lockAcquired)
             {
-                _lockManager.ReleaseLock(chatRequest.ThreadId);
+                _lockManager.ReleaseLock(threadId);
             }
         }
     }
