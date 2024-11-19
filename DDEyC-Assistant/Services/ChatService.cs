@@ -324,7 +324,7 @@ public class ChatService : IChatService
 
             await Task.Delay(1000);
         }
-
+        _lockManager.ReleaseLock(threadId);
         throw OpenAIServiceException.Timeout();
     }
     private async Task<string> HandleFunctionCallAsync(string functionName, string arguments)
@@ -369,17 +369,26 @@ public class ChatService : IChatService
             return JsonSerializer.Serialize(new { error = "Invalid job listing arguments" });
         }
 
-        var queryParams = BuildJobListingQueryParams(args);
-        var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/joblistings";
-
-        var response = await _httpClient.GetAsync(QueryHelpers.AddQueryString(url, queryParams));
-        if (response.IsSuccessStatusCode)
+        try
         {
-            return await response.Content.ReadAsStringAsync();
-        }
+            var queryParams = BuildJobListingQueryParams(args);
+            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/joblistings";
 
-        _logger.LogError("Failed to retrieve job listings. Status: {StatusCode}", response.StatusCode);
-        return JsonSerializer.Serialize(new { error = "Failed to retrieve job listings" });
+            // QueryHelpers.AddQueryString accepts IEnumerable<KeyValuePair<string, string>> directly
+            var response = await _httpClient.GetAsync(QueryHelpers.AddQueryString(url, queryParams));
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadAsStringAsync();
+            }
+
+            _logger.LogError("Failed to retrieve job listings. Status: {StatusCode}", response.StatusCode);
+            return JsonSerializer.Serialize(new { error = "Failed to retrieve job listings" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error building or executing job listings query");
+            return JsonSerializer.Serialize(new { error = "Failed to process job listings request" });
+        }
     }
     private async Task<string> HandleGetCourseRecommendationsAsync(string arguments)
     {
@@ -411,55 +420,55 @@ public class ChatService : IChatService
         _logger.LogError("Failed to retrieve course recommendations. Status: {StatusCode}", response.StatusCode);
         return JsonSerializer.Serialize(new { error = "Failed to retrieve course recommendations" });
     }
-    private Dictionary<string, string> BuildJobListingQueryParams(JobListingFilter args)
+    // Change return type to match what QueryHelpers.AddQueryString actually needs
+    private IEnumerable<KeyValuePair<string, string>> BuildJobListingQueryParams(JobListingFilter args)
     {
-        var queryParams = new Dictionary<string, string>();
+        var queryParams = new List<KeyValuePair<string, string>>();
+
+        // Single-value parameters
         if (!string.IsNullOrEmpty(args.Title))
-            queryParams.Add("Title", args.Title);
+            queryParams.Add(new KeyValuePair<string, string>("Title", args.Title));
         if (!string.IsNullOrEmpty(args.CompanyName))
-            queryParams.Add("CompanyName", args.CompanyName);
+            queryParams.Add(new KeyValuePair<string, string>("CompanyName", args.CompanyName));
         if (!string.IsNullOrEmpty(args.Location))
-            queryParams.Add("Location", args.Location);
+            queryParams.Add(new KeyValuePair<string, string>("Location", args.Location));
         if (!string.IsNullOrEmpty(args.Seniority))
-            queryParams.Add("Seniority", args.Seniority);
+            queryParams.Add(new KeyValuePair<string, string>("Seniority", args.Seniority));
         if (!string.IsNullOrEmpty(args.EmploymentType))
-            queryParams.Add("EmploymentType", args.EmploymentType);
+            queryParams.Add(new KeyValuePair<string, string>("EmploymentType", args.EmploymentType));
 
-        queryParams.Add("Limit", args.Limit.ToString());
+        queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
 
-        queryParams = queryParams
-            .Where(kvp => !string.IsNullOrEmpty(kvp.Value))
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-        if (args.JobFunctions != null)
+        // Multi-value parameters
+        if (args.JobFunctions?.Any() == true)
         {
-            foreach (var func in args.JobFunctions)
+            foreach (var function in args.JobFunctions.Where(f => !string.IsNullOrEmpty(f)))
             {
-                queryParams.Add("JobFunctions", func);
+                queryParams.Add(new KeyValuePair<string, string>("JobFunctions", function));
             }
         }
 
-        if (args.Industries != null)
+        if (args.Industries?.Any() == true)
         {
-            foreach (var industry in args.Industries)
+            foreach (var industry in args.Industries.Where(i => !string.IsNullOrEmpty(i)))
             {
-                queryParams.Add("Industries", industry);
+                queryParams.Add(new KeyValuePair<string, string>("Industries", industry));
             }
         }
+
         if (args.AcademicLevels?.Any() == true)
         {
             foreach (var level in args.AcademicLevels.OrderBy(x => x))
             {
-                queryParams.Add("AcademicLevels", level.ToString());
+                queryParams.Add(new KeyValuePair<string, string>("AcademicLevels", level.ToString()));
             }
         }
-        if (args.MinimumAcademicLevel != 0)
-        {
-            queryParams.Add("MinimumAcademicLevel", args.MinimumAcademicLevel.ToString());
-        }
-        return queryParams;
-    }
 
+        if (args.MinimumAcademicLevel != 0)
+            queryParams.Add(new KeyValuePair<string, string>("MinimumAcademicLevel", args.MinimumAcademicLevel.ToString()));
+
+        return queryParams.Where(kvp => !string.IsNullOrEmpty(kvp.Value));
+    }
     public async Task<List<MessageDto>> GetMessagesForThread(int userId, int threadId)
     {
         var userThread = await _chatRepository.GetThreadById(threadId);
