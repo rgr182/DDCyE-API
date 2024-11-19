@@ -324,7 +324,6 @@ public class ChatService : IChatService
 
             await Task.Delay(1000);
         }
-        _lockManager.ReleaseLock(threadId);
         throw OpenAIServiceException.Timeout();
     }
     private async Task<string> HandleFunctionCallAsync(string functionName, string arguments)
