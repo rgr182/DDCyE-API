@@ -1,16 +1,15 @@
 namespace DDEyC_API.Models.DTOs
 {
-    public class JobListingFilter
+     public class JobListingFilter
     {
         public string? Title { get; set; }
         public string? CompanyName { get; set; }
         public string? Location { get; set; }
-        public string? Seniority { get; set; }
         public string? EmploymentType { get; set; }
-        public List<string>? JobFunctions { get; set; }
-        public List<string>? Industries { get; set; }
-        public int Limit { get; set; } = 5; // Default limit
-        public List<int> AcademicLevels { get; set; } = new List<int>();
-        public int MinimumAcademicLevel { get; set; } = 0; 
+        public int Limit { get; set; } = 10;
+        public string? DatePosted { get; set; } // Mapped to JSearch date_posted
+        public bool? IsRemote { get; set; }
+        public decimal? MinSalary { get; set; }
+        public string? RequiredExperience { get; set; } // Will be used to filter job_required_experience
     }
 }
