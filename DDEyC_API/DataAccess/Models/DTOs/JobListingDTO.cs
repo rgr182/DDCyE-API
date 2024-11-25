@@ -1,6 +1,6 @@
 namespace DDEyC_API.Models.DTOs
 {
-     public class JobListingFilter
+    public class JobListingFilter
     {
         public string? Title { get; set; }
         public string? CompanyName { get; set; }
@@ -10,6 +10,6 @@ namespace DDEyC_API.Models.DTOs
         public string? DatePosted { get; set; } // Mapped to JSearch date_posted
         public bool? IsRemote { get; set; }
         public decimal? MinSalary { get; set; }
-        public string? RequiredExperience { get; set; } // Will be used to filter job_required_experience
+        public string? RequiredExperience { get; set; }
     }
 }

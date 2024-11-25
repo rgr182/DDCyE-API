@@ -22,6 +22,7 @@ builder.Services.Configure<RazorViewEngineOptions>(options =>
 {
     options.ViewLocationFormats.Add("/Templates/Emails/{0}" + RazorViewEngine.ViewExtension);
 });
+
 // Add CORS configuration to allow any origin, method, and header
 builder.Services.AddCors(options =>
 {
@@ -35,6 +36,7 @@ builder.Services.AddCors(options =>
 
 // Add HttpContextAccessor
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -69,6 +71,8 @@ builder.Services.AddSwaggerGen(c =>
 
 AuthenticationConfig authenticationConfig = new AuthenticationConfig(builder);
 // Register your services
+
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISessionService, SessionService>();

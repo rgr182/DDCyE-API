@@ -442,11 +442,26 @@ public class ChatService : IChatService
 
         try
         {
-            var queryParams = BuildJobListingQueryParams(args);
-            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/joblistings";
+            var queryParams = new List<KeyValuePair<string, string>>();
 
-            // QueryHelpers.AddQueryString accepts IEnumerable<KeyValuePair<string, string>> directly
+            // Single-value parameters
+            if (!string.IsNullOrEmpty(args.Title))
+                queryParams.Add(new KeyValuePair<string, string>("Title", args.Title));
+            if (!string.IsNullOrEmpty(args.CompanyName))
+                queryParams.Add(new KeyValuePair<string, string>("CompanyName", args.CompanyName));
+            if (!string.IsNullOrEmpty(args.Location))
+                queryParams.Add(new KeyValuePair<string, string>("Location", args.Location));
+            if (!string.IsNullOrEmpty(args.EmploymentType))
+                queryParams.Add(new KeyValuePair<string, string>("EmploymentType", args.EmploymentType));
+            if (!string.IsNullOrEmpty(args.DatePosted))
+                queryParams.Add(new KeyValuePair<string, string>("DatePosted", args.DatePosted));
+
+            queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
+
+
+            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/JobListing";
             var response = await _httpClient.GetAsync(QueryHelpers.AddQueryString(url, queryParams));
+
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadAsStringAsync();
@@ -457,7 +472,7 @@ public class ChatService : IChatService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error building or executing job listings query");
+            _logger.LogError(ex, "Error retrieving job listings");
             return JsonSerializer.Serialize(new { error = "Failed to process job listings request" });
         }
     }
@@ -492,53 +507,31 @@ public class ChatService : IChatService
         return JsonSerializer.Serialize(new { error = "Failed to retrieve course recommendations" });
     }
     // Change return type to match what QueryHelpers.AddQueryString actually needs
-    private IEnumerable<KeyValuePair<string, string>> BuildJobListingQueryParams(JobListingFilter args)
+    private Dictionary<string, string> BuildJobListingQueryParams(JobListingFilter filter)
     {
-        var queryParams = new List<KeyValuePair<string, string>>();
+        var queryParams = new Dictionary<string, string>();
+        var searchTerms = new List<string>();
 
-        // Single-value parameters
-        if (!string.IsNullOrEmpty(args.Title))
-            queryParams.Add(new KeyValuePair<string, string>("Title", args.Title));
-        if (!string.IsNullOrEmpty(args.CompanyName))
-            queryParams.Add(new KeyValuePair<string, string>("CompanyName", args.CompanyName));
-        if (!string.IsNullOrEmpty(args.Location))
-            queryParams.Add(new KeyValuePair<string, string>("Location", args.Location));
-        if (!string.IsNullOrEmpty(args.Seniority))
-            queryParams.Add(new KeyValuePair<string, string>("Seniority", args.Seniority));
-        if (!string.IsNullOrEmpty(args.EmploymentType))
-            queryParams.Add(new KeyValuePair<string, string>("EmploymentType", args.EmploymentType));
+        if (!string.IsNullOrWhiteSpace(filter.Title))
+            searchTerms.Add(filter.Title);
 
-        queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
+        if (!string.IsNullOrWhiteSpace(filter.CompanyName))
+            searchTerms.Add($"company:{filter.CompanyName}");
 
-        // Multi-value parameters
-        if (args.JobFunctions?.Any() == true)
-        {
-            foreach (var function in args.JobFunctions.Where(f => !string.IsNullOrEmpty(f)))
-            {
-                queryParams.Add(new KeyValuePair<string, string>("JobFunctions", function));
-            }
-        }
+        if (searchTerms.Any())
+            queryParams["query"] = string.Join(" ", searchTerms);
 
-        if (args.Industries?.Any() == true)
-        {
-            foreach (var industry in args.Industries.Where(i => !string.IsNullOrEmpty(i)))
-            {
-                queryParams.Add(new KeyValuePair<string, string>("Industries", industry));
-            }
-        }
+        if (!string.IsNullOrWhiteSpace(filter.Location))
+            queryParams["location"] = filter.Location;
 
-        if (args.AcademicLevels?.Any() == true)
-        {
-            foreach (var level in args.AcademicLevels.OrderBy(x => x))
-            {
-                queryParams.Add(new KeyValuePair<string, string>("AcademicLevels", level.ToString()));
-            }
-        }
+        if (!string.IsNullOrWhiteSpace(filter.EmploymentType))
+            queryParams["employment_type"] = filter.EmploymentType.ToUpperInvariant();
 
-        if (args.MinimumAcademicLevel != 0)
-            queryParams.Add(new KeyValuePair<string, string>("MinimumAcademicLevel", args.MinimumAcademicLevel.ToString()));
+        queryParams["page"] = "1";
+        queryParams["num_pages"] = "1";
+        queryParams["date_posted"] = filter.DatePosted ?? "all";
 
-        return queryParams.Where(kvp => !string.IsNullOrEmpty(kvp.Value));
+        return queryParams;
     }
     public async Task<List<MessageDto>> GetMessagesForThread(int userId, int threadId)
     {
