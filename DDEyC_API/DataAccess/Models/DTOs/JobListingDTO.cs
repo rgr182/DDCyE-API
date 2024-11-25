@@ -1,15 +1,17 @@
 namespace DDEyC_API.Models.DTOs
 {
-    public class JobListingFilter
-    {
-        public string? Title { get; set; }
-        public string? CompanyName { get; set; }
-        public string? Location { get; set; }
-        public string? EmploymentType { get; set; }
-        public int Limit { get; set; } = 10;
-        public string? DatePosted { get; set; } // Mapped to JSearch date_posted
-        public bool? IsRemote { get; set; }
-        public decimal? MinSalary { get; set; }
-        public string? RequiredExperience { get; set; }
-    }
+   public class JobListingFilter
+{
+    public string? Title { get; set; }
+    public string? CompanyName { get; set; }
+    public string? CountryCode { get; set; } = "MX";
+    public string? Country { get; set; }
+    public string? State { get; set; }
+    public string? City { get; set; }
+    public string? EmploymentType { get; set; }
+    public bool? Remote { get; set; }
+    public string? JobRequirements { get; set; }
+    public string? DatePosted { get; set; }
+    public int Limit { get; set; } = 5;
+}
 }

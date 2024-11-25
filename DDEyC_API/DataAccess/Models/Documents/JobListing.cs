@@ -18,9 +18,6 @@ namespace DDEyC_API.Models
         [BsonElement("description")]
         public string Description { get; set; }
 
-        [BsonElement("academic_level")]
-        public string? AcademicLevel { get; set; }
-
         [BsonElement("seniority")]
         public string Seniority { get; set; }
 
@@ -71,9 +68,6 @@ namespace DDEyC_API.Models
 
         [BsonElement("job_functions")]
         public List<string> JobFunctions { get; set; }
-
-        [BsonElement("job_industries")]
-        public List<JobIndustry> JobIndustries { get; set; }
 
         [BsonElement("academic_levels")]
         [BsonRepresentation(BsonType.Int32)]

@@ -444,28 +444,30 @@ public class ChatService : IChatService
         {
             var queryParams = new List<KeyValuePair<string, string>>();
 
-            // Single-value parameters
             if (!string.IsNullOrEmpty(args.Title))
                 queryParams.Add(new KeyValuePair<string, string>("Title", args.Title));
             if (!string.IsNullOrEmpty(args.CompanyName))
                 queryParams.Add(new KeyValuePair<string, string>("CompanyName", args.CompanyName));
-            if (!string.IsNullOrEmpty(args.Location))
-                queryParams.Add(new KeyValuePair<string, string>("Location", args.Location));
+            if (!string.IsNullOrEmpty(args.Country))
+                queryParams.Add(new KeyValuePair<string, string>("Country", args.Country));
+            if (!string.IsNullOrEmpty(args.State))
+                queryParams.Add(new KeyValuePair<string, string>("State", args.State));
+            if (!string.IsNullOrEmpty(args.City))
+                queryParams.Add(new KeyValuePair<string, string>("City", args.City));
             if (!string.IsNullOrEmpty(args.EmploymentType))
                 queryParams.Add(new KeyValuePair<string, string>("EmploymentType", args.EmploymentType));
             if (!string.IsNullOrEmpty(args.DatePosted))
                 queryParams.Add(new KeyValuePair<string, string>("DatePosted", args.DatePosted));
+            if (args.Remote.HasValue)
+                queryParams.Add(new KeyValuePair<string, string>("Remote", args.Remote.Value.ToString()));
 
             queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
 
-
-            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/JobListing";
+            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/jsearch/search";
             var response = await _httpClient.GetAsync(QueryHelpers.AddQueryString(url, queryParams));
 
             if (response.IsSuccessStatusCode)
-            {
                 return await response.Content.ReadAsStringAsync();
-            }
 
             _logger.LogError("Failed to retrieve job listings. Status: {StatusCode}", response.StatusCode);
             return JsonSerializer.Serialize(new { error = "Failed to retrieve job listings" });
@@ -518,18 +520,32 @@ public class ChatService : IChatService
         if (!string.IsNullOrWhiteSpace(filter.CompanyName))
             searchTerms.Add($"company:{filter.CompanyName}");
 
+        // Join search terms
         if (searchTerms.Any())
             queryParams["query"] = string.Join(" ", searchTerms);
 
-        if (!string.IsNullOrWhiteSpace(filter.Location))
-            queryParams["location"] = filter.Location;
+        // Location handling
+        if (!string.IsNullOrWhiteSpace(filter.Country))
+            queryParams["country"] = filter.Country;
+        if (!string.IsNullOrWhiteSpace(filter.State))
+            queryParams["state"] = filter.State;
+        if (!string.IsNullOrWhiteSpace(filter.City))
+            queryParams["city"] = filter.City;
 
         if (!string.IsNullOrWhiteSpace(filter.EmploymentType))
             queryParams["employment_type"] = filter.EmploymentType.ToUpperInvariant();
 
+        // Date and pagination
+        queryParams["date_posted"] = filter.DatePosted ?? "all";
         queryParams["page"] = "1";
         queryParams["num_pages"] = "1";
-        queryParams["date_posted"] = filter.DatePosted ?? "all";
+
+        // Add filtering options
+        if (filter.Remote.HasValue)
+            queryParams["remote_jobs_only"] = filter.Remote.Value.ToString().ToLower();
+
+        if (!string.IsNullOrWhiteSpace(filter.JobRequirements))
+            queryParams["job_requirements"] = filter.JobRequirements;
 
         return queryParams;
     }

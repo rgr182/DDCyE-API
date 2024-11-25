@@ -11,6 +11,7 @@ using DDEyC_API.Extensions;
 using DDEyC_API.Models.JSearch;
 using DDEyC_API.Infrastructure.Http;
 using DDEyC_API.Services.JSearch;
+using DDEyC_API.Services.TextAnalysis;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -81,11 +82,13 @@ builder.Services.AddScoped<IAuthUtils, AuthUtils>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestService, PasswordRecoveryRequestService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestRepository, PasswordRecoveryRequestRepository>();
-builder.Services.AddScoped<IJobListingRepository, JobListingRepository>();
+// builder.Services.AddScoped<IJobListingRepository, JobListingRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddSingleton<ITextNormalizationService, TextNormalizationService>();
 builder.Services.AddScoped<ICourseImportService,CourseImportService>();
+builder.Services.Configure<TextAnalysisConfig>(
+    builder.Configuration.GetSection("TextAnalysis"));
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));

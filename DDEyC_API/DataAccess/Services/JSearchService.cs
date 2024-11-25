@@ -6,6 +6,7 @@ using DDEyC_API.Infrastructure.Http;
 using DDEyC_API.Models;
 using DDEyC_API.Models.DTOs;
 using DDEyC_API.Models.JSearch;
+using DDEyC_API.Services.TextAnalysis;
 using Microsoft.Extensions.Options;
 
 namespace DDEyC_API.Services.JSearch
@@ -22,12 +23,13 @@ namespace DDEyC_API.Services.JSearch
         private readonly ITextNormalizationService _textNormalizationService;
         private readonly JSearchOptions _options;
         private readonly ILogger<JSearchService> _logger;
-
+        private readonly TextAnalysisExtractor _textAnalyzer;
         public JSearchService(
             ResilientHttpClient httpClient,
             ICacheService cacheService,
             ITextNormalizationService textNormalizationService,
             IOptions<JSearchOptions> options,
+            IOptions<TextAnalysisConfig> textAnalysisConfig,
             ILogger<JSearchService> logger)
         {
             _httpClient = httpClient;
@@ -35,6 +37,14 @@ namespace DDEyC_API.Services.JSearch
             _textNormalizationService = textNormalizationService;
             _options = options.Value;
             _logger = logger;
+            _logger.LogInformation("TextAnalysis Config: {@Config}", textAnalysisConfig.Value);
+
+            if (textAnalysisConfig.Value == null || textAnalysisConfig.Value.SeniorityPatterns == null)
+            {
+                _logger.LogError("TextAnalysis configuration is missing or invalid");
+                throw new InvalidOperationException("TextAnalysis configuration is required");
+            }
+            _textAnalyzer = new TextAnalysisExtractor(textAnalysisConfig.Value, logger);
         }
 
         public async Task<List<JobListing>> SearchJobListingsAsync(
@@ -103,11 +113,24 @@ namespace DDEyC_API.Services.JSearch
             if (searchTerms.Any())
                 queryParts.Add($"query={HttpUtility.UrlEncode(string.Join(" ", searchTerms))}");
 
-            if (!string.IsNullOrWhiteSpace(filter.Location))
-                queryParts.Add($"location={HttpUtility.UrlEncode(filter.Location)}");
+            var locationParts = new List<string>();
 
+            if (!string.IsNullOrWhiteSpace(filter.Country))
+                locationParts.Add(filter.Country);
+            if (!string.IsNullOrWhiteSpace(filter.State))
+                locationParts.Add(filter.State);
+            if (!string.IsNullOrWhiteSpace(filter.City))
+                locationParts.Add(filter.City);
+
+            if (locationParts.Any())
+                queryParts.Add($"location={HttpUtility.UrlEncode(string.Join(", ", locationParts))}");
+            if (!string.IsNullOrWhiteSpace(filter.CountryCode))
+            queryParts.Add($"country={filter.CountryCode.ToUpperInvariant()}");
             if (!string.IsNullOrWhiteSpace(filter.EmploymentType))
                 queryParts.Add($"employment_type={filter.EmploymentType.ToUpperInvariant()}");
+
+            if (filter.Remote.HasValue)
+                queryParts.Add($"remote_jobs_only={filter.Remote.Value.ToString().ToLower()}");
 
             queryParts.Add("page=1");
             queryParts.Add("num_pages=1");
@@ -120,54 +143,21 @@ namespace DDEyC_API.Services.JSearch
         {
             try
             {
-                var location = new[]
-                {
-                    job.job_city,
-                    job.job_state,
-                    job.job_country
-                }.Where(x => !string.IsNullOrEmpty(x));
+                var location = new[] { job.job_city, job.job_state, job.job_country }
+                    .Where(x => !string.IsNullOrEmpty(x));
 
-                var jobIndustries = new List<JobIndustry>();
-                if (!string.IsNullOrEmpty(job.job_naics_name))
-                {
-                    jobIndustries.Add(new JobIndustry
-                    {
-                        JobIndustryList = new JobIndustryList
-                        {
-                            Industry = job.job_naics_name
-                        }
-                    });
-                }
+                var jobIndustries = !string.IsNullOrEmpty(job.job_naics_name)
+                    ? new List<JobIndustry> { new() { JobIndustryList = new() { Industry = job.job_naics_name } } }
+                    : new List<JobIndustry>();
 
-                var academicLevels = new List<int>();
-                var minimumAcademicLevel = 0;
-
-                if (job.job_highlights?.Qualifications != null)
-                {
-                    foreach (var qual in job.job_highlights.Qualifications)
-                    {
-                        if (qual.Contains("Bachelor", StringComparison.OrdinalIgnoreCase))
-                        {
-                            academicLevels.Add(3);
-                            minimumAcademicLevel = Math.Max(minimumAcademicLevel, 3);
-                        }
-                        if (qual.Contains("Master", StringComparison.OrdinalIgnoreCase) ||
-                            qual.Contains("PhD", StringComparison.OrdinalIgnoreCase))
-                        {
-                            academicLevels.Add(4);
-                            minimumAcademicLevel = Math.Max(minimumAcademicLevel, 4);
-                        }
-                        if (qual.Contains("Associate", StringComparison.OrdinalIgnoreCase))
-                        {
-                            academicLevels.Add(2);
-                            minimumAcademicLevel = Math.Max(minimumAcademicLevel, 2);
-                        }
-                    }
-                }
+                var ( academicLevels, minimumLevel) = _textAnalyzer.ExtractJobMetadata(
+                    job.job_description,
+                    job.job_title,
+                    job.job_highlights?.Qualifications
+                );
 
                 return new JobListing
                 {
-                    // Id = ObjectId.GenerateNewId(),
                     JobId = GetHashCode(job.job_id),
                     Title = job.job_title,
                     Description = job.job_description,
@@ -177,12 +167,9 @@ namespace DDEyC_API.Services.JSearch
                     CompanyName = job.employer_name,
                     CompanyUrl = job.employer_website,
                     Url = job.job_apply_link,
-                    Created = DateTime.TryParse(job.job_posted_at_datetime_utc,
-                        out var created) ? created : DateTime.UtcNow,
-                    LastUpdated = DateTime.TryParse(job.job_posted_at_datetime_utc,
-                        out var updated) ? updated : DateTime.UtcNow,
+                    Created = DateTime.TryParse(job.job_posted_at_datetime_utc, out var created) ? created : DateTime.UtcNow,
+                    LastUpdated = DateTime.TryParse(job.job_posted_at_datetime_utc, out var updated) ? updated : DateTime.UtcNow,
                     TimePosted = "N/A",
-                    Seniority = ExtractSeniority(job.job_title, job.job_highlights?.Qualifications),
                     Hash = job.job_id,
                     ExternalUrl = job.job_google_link,
                     Deleted = 0,
@@ -190,9 +177,8 @@ namespace DDEyC_API.Services.JSearch
                     Salary = ExtractSalary(job.job_highlights?.Benefits),
                     RedirectedUrl = job.job_apply_link,
                     JobFunctions = job.job_highlights?.Responsibilities?.ToList() ?? new List<string>(),
-                    JobIndustries = jobIndustries,
-                    AcademicLevels = academicLevels.Distinct().ToList(),
-                    MinimumAcademicLevel = minimumAcademicLevel
+                    AcademicLevels = academicLevels,
+                    MinimumAcademicLevel = minimumLevel
                 };
             }
             catch (Exception ex)
@@ -200,26 +186,6 @@ namespace DDEyC_API.Services.JSearch
                 _logger.LogError(ex, "Error mapping job {JobId}: {Error}", job.job_id, ex.Message);
                 return null;
             }
-        }
-
-        private string ExtractSeniority(string jobTitle, List<string> qualifications)
-        {
-            var title = jobTitle?.ToLower() ?? "";
-            var quals = qualifications ?? new List<string>();
-
-            if (title.Contains("senior") || title.Contains("sr.") ||
-                quals.Any(q => q.ToLower().Contains("senior")))
-                return "Senior";
-
-            if (title.Contains("junior") || title.Contains("jr.") ||
-                title.Contains("entry") || title.Contains("intern"))
-                return "Entry Level";
-
-            if (title.Contains("lead") || title.Contains("manager") ||
-                title.Contains("director"))
-                return "Executive";
-
-            return "Mid-Senior";
         }
 
         private string ExtractSalary(List<string> benefits)
@@ -238,7 +204,9 @@ namespace DDEyC_API.Services.JSearch
             {
                 filter.Title,
                 filter.CompanyName,
-                filter.Location,
+                filter.Country,
+                filter.State,
+                filter.City,
                 filter.EmploymentType,
                 filter.DatePosted,
                 filter.Limit
