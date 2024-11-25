@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using DDEyC_API.Models;
 using DDEyC_API.Models.DTOs;
 using DDEyC_API.Services.JSearch;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DDEyC_API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class JobListingController : ControllerBase
