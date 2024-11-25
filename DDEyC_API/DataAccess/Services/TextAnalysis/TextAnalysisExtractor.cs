@@ -55,7 +55,7 @@ namespace DDEyC_API.Services.TextAnalysis{
         }
 
         var academicLevels = ExtractAcademicLevels(text);
-        return academicLevels.Any() ? academicLevels.Max() : 0;
+        return academicLevels.Count != 0 ? academicLevels.Max() : 0;
     }
 }
 }

@@ -110,7 +110,7 @@ namespace DDEyC_API.Services.JSearch
             if (!string.IsNullOrWhiteSpace(filter.CompanyName))
                 searchTerms.Add($"company:{filter.CompanyName}");
 
-            if (searchTerms.Any())
+            if (searchTerms.Count != 0)
                 queryParts.Add($"query={HttpUtility.UrlEncode(string.Join(" ", searchTerms))}");
 
             var locationParts = new List<string>();
@@ -122,7 +122,7 @@ namespace DDEyC_API.Services.JSearch
             if (!string.IsNullOrWhiteSpace(filter.City))
                 locationParts.Add(filter.City);
 
-            if (locationParts.Any())
+            if (locationParts.Count != 0)
                 queryParts.Add($"location={HttpUtility.UrlEncode(string.Join(", ", locationParts))}");
             if (!string.IsNullOrWhiteSpace(filter.CountryCode))
             queryParts.Add($"country={filter.CountryCode.ToUpperInvariant()}");
@@ -211,16 +211,13 @@ namespace DDEyC_API.Services.JSearch
                 filter.DatePosted,
                 filter.Limit
             });
-
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(normalizedFilter));
+            var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(normalizedFilter));
             return $"jsearch:jobs:{Convert.ToBase64String(hash)}";
         }
 
         private int GetHashCode(string input)
         {
-            using var md5 = System.Security.Cryptography.MD5.Create();
-            var hash = md5.ComputeHash(Encoding.UTF8.GetBytes(input));
+            var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(input));
             return Math.Abs(BitConverter.ToInt32(hash, 0));
         }
     }

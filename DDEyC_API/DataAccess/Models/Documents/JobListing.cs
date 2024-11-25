@@ -8,7 +8,6 @@ namespace DDEyC_API.Models
 {
     public class JobListing
     {
-
         [BsonElement("id")]
         public int JobId { get; set; }
 
