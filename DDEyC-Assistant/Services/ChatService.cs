@@ -508,47 +508,6 @@ public class ChatService : IChatService
         _logger.LogError("Failed to retrieve course recommendations. Status: {StatusCode}", response.StatusCode);
         return JsonSerializer.Serialize(new { error = "Failed to retrieve course recommendations" });
     }
-    // Change return type to match what QueryHelpers.AddQueryString actually needs
-    private Dictionary<string, string> BuildJobListingQueryParams(JobListingFilter filter)
-    {
-        var queryParams = new Dictionary<string, string>();
-        var searchTerms = new List<string>();
-
-        if (!string.IsNullOrWhiteSpace(filter.Title))
-            searchTerms.Add(filter.Title);
-
-        if (!string.IsNullOrWhiteSpace(filter.CompanyName))
-            searchTerms.Add($"company:{filter.CompanyName}");
-
-        // Join search terms
-        if (searchTerms.Any())
-            queryParams["query"] = string.Join(" ", searchTerms);
-
-        // Location handling
-        if (!string.IsNullOrWhiteSpace(filter.Country))
-            queryParams["country"] = filter.Country;
-        if (!string.IsNullOrWhiteSpace(filter.State))
-            queryParams["state"] = filter.State;
-        if (!string.IsNullOrWhiteSpace(filter.City))
-            queryParams["city"] = filter.City;
-
-        if (!string.IsNullOrWhiteSpace(filter.EmploymentType))
-            queryParams["employment_type"] = filter.EmploymentType.ToUpperInvariant();
-
-        // Date and pagination
-        queryParams["date_posted"] = filter.DatePosted ?? "all";
-        queryParams["page"] = "1";
-        queryParams["num_pages"] = "1";
-
-        // Add filtering options
-        if (filter.Remote.HasValue)
-            queryParams["remote_jobs_only"] = filter.Remote.Value.ToString().ToLower();
-
-        if (!string.IsNullOrWhiteSpace(filter.JobRequirements))
-            queryParams["job_requirements"] = filter.JobRequirements;
-
-        return queryParams;
-    }
     public async Task<List<MessageDto>> GetMessagesForThread(int userId, int threadId)
     {
         var userThread = await _chatRepository.GetThreadById(threadId);
