@@ -470,6 +470,7 @@ public class ChatService : IChatService
                 return await response.Content.ReadAsStringAsync();
 
             _logger.LogError("Failed to retrieve job listings. Status: {StatusCode}", response.StatusCode);
+            _logger.LogError("Request made to {Url}", url);
             return JsonSerializer.Serialize(new { error = "Failed to retrieve job listings" });
         }
         catch (Exception ex)
