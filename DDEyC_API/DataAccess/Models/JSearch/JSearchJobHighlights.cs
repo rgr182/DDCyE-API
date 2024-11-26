@@ -1,5 +1,4 @@
 namespace DDEyC_API.Models.JSearch{
-    
     public class JSearchJobHighlights
     {
         public List<string> Qualifications { get; set; } = new();
