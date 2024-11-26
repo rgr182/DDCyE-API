@@ -26,6 +26,7 @@ public class ChatService : IChatService
     private readonly int _maxRetries;
     private readonly TimeSpan _retryDelay;
     private readonly TimeSpan _runTimeout;
+    private readonly IHttpContextAccessor _httpContext;
 
     public ChatService(
         IAssistantService assistantService,
@@ -33,7 +34,8 @@ public class ChatService : IChatService
         ILogger<ChatService> logger,
         HttpClient httpClient,
         IConfiguration configuration,
-        IConversationLockManager lockManager)
+        IConversationLockManager lockManager,
+          IHttpContextAccessor httpContextAccessor)
     {
         _assistantService = assistantService;
         _chatRepository = chatRepository;
@@ -41,6 +43,7 @@ public class ChatService : IChatService
         _httpClient = httpClient;
         _configuration = configuration;
         _lockManager = lockManager;
+        _httpContext = httpContextAccessor;
 
         _conversationTimeout = TimeSpan.FromMinutes(5); // Can be moved to configuration
         _threadExpirationTime = TimeSpan.FromHours(
@@ -463,14 +466,35 @@ public class ChatService : IChatService
 
             queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
 
-            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/jsearch/search";
-            var response = await _httpClient.GetAsync(QueryHelpers.AddQueryString(url, queryParams));
+            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/JobListing";
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, QueryHelpers.AddQueryString(url, queryParams));
+
+            // Get the bearer token from the current HttpContext
+            var token = _httpContext.HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(token))
+            {
+                _logger.LogError("No authorization token found in request headers");
+                return JsonSerializer.Serialize(new { error = "Authorization required" });
+            }
+
+            // Add the bearer token to the request
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _httpClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
                 return await response.Content.ReadAsStringAsync();
 
             _logger.LogError("Failed to retrieve job listings. Status: {StatusCode}", response.StatusCode);
             _logger.LogError("Request made to {Url}", url);
+
+            // Handle specific error cases
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return JsonSerializer.Serialize(new { error = "Unauthorized access to job listings" });
+            }
+
             return JsonSerializer.Serialize(new { error = "Failed to retrieve job listings" });
         }
         catch (Exception ex)
@@ -494,20 +518,55 @@ public class ChatService : IChatService
             return JsonSerializer.Serialize(new { error = "Invalid course recommendation arguments" });
         }
 
-        var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/Courses/recommendations";
-        var content = new StringContent(
-            JsonSerializer.Serialize(args, options),
-            Encoding.UTF8,
-            MediaTypeNames.Application.Json);
-
-        var response = await _httpClient.PostAsync(url, content);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            return await response.Content.ReadAsStringAsync();
-        }
+            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/Courses/recommendations";
 
-        _logger.LogError("Failed to retrieve course recommendations. Status: {StatusCode}", response.StatusCode);
-        return JsonSerializer.Serialize(new { error = "Failed to retrieve course recommendations" });
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
+
+            // Get the bearer token from the current HttpContext
+            var token = _httpContext.HttpContext?.Request.Headers.Authorization.FirstOrDefault()?.Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(token))
+            {
+                _logger.LogError("No authorization token found in request headers");
+                return JsonSerializer.Serialize(new { error = "Authorization required" });
+            }
+
+            // Add the bearer token to the request
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            // Add the content
+            var content = new StringContent(
+                JsonSerializer.Serialize(args, options),
+                Encoding.UTF8,
+                MediaTypeNames.Application.Json);
+            request.Content = content;
+
+            var response = await _httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+                return await response.Content.ReadAsStringAsync();
+
+            _logger.LogError("Failed to retrieve course recommendations. Status: {StatusCode}", response.StatusCode);
+            _logger.LogError("Request made to {Url}", url);
+
+            // Handle specific error cases
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return JsonSerializer.Serialize(new { error = "Unauthorized access to course recommendations" });
+            }
+
+            // Log the error response content for debugging
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Error response content: {ErrorContent}", errorContent);
+
+            return JsonSerializer.Serialize(new { error = "Failed to retrieve course recommendations" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving course recommendations");
+            return JsonSerializer.Serialize(new { error = "Failed to process course recommendations request" });
+        }
     }
     public async Task<List<MessageDto>> GetMessagesForThread(int userId, int threadId)
     {

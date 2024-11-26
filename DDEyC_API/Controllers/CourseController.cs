@@ -1,9 +1,11 @@
 using DDEyC_API.Models;
 using DDEyC_API.Models.DTOs;
 using DDEyC_API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace DDEyC_API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class CoursesController : ControllerBase
