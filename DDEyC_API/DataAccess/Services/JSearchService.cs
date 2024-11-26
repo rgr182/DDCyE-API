@@ -104,39 +104,29 @@ namespace DDEyC_API.Services.JSearch
             var queryParts = new List<string>();
             var searchTerms = new List<string>();
 
-            if (!string.IsNullOrWhiteSpace(filter.Title))
-                searchTerms.Add(filter.Title);
+            if (!string.IsNullOrWhiteSpace(filter.Query))
+                searchTerms.Add(filter.Query);
 
-            if (!string.IsNullOrWhiteSpace(filter.CompanyName))
-                searchTerms.Add($"company:{filter.CompanyName}");
-
+        _logger.LogInformation("Search term: {SearchTerm}", filter.Query);
+        _logger.LogInformation("Search terms: {SearchTerms}", searchTerms.Count);
             if (searchTerms.Count != 0)
                 queryParts.Add($"query={HttpUtility.UrlEncode(string.Join(" ", searchTerms))}");
 
-            var locationParts = new List<string>();
-
-            if (!string.IsNullOrWhiteSpace(filter.Country))
-                locationParts.Add(filter.Country);
-            if (!string.IsNullOrWhiteSpace(filter.State))
-                locationParts.Add(filter.State);
-            if (!string.IsNullOrWhiteSpace(filter.City))
-                locationParts.Add(filter.City);
-
-            if (locationParts.Count != 0)
-                queryParts.Add($"location={HttpUtility.UrlEncode(string.Join(", ", locationParts))}");
             if (!string.IsNullOrWhiteSpace(filter.CountryCode))
-            queryParts.Add($"country={filter.CountryCode.ToUpperInvariant()}");
+                queryParts.Add($"country={filter.CountryCode.ToUpperInvariant()}");
             if (!string.IsNullOrWhiteSpace(filter.EmploymentType))
                 queryParts.Add($"employment_type={filter.EmploymentType.ToUpperInvariant()}");
 
             if (filter.Remote.HasValue)
-                queryParts.Add($"remote_jobs_only={filter.Remote.Value.ToString().ToLower()}");
-            if (filter.Page > 0 && filter.Limit > 0){
+                queryParts.Add($"work_from_home={filter.Remote.Value.ToString().ToLower()}");
+            if (filter.Page > 0 && filter.Limit > 0)
+            {
                 queryParts.Add($"page={filter.Page}");
             }
-            else{
+            else
+            {
                 queryParts.Add($"page=1");
-            } 
+            }
             queryParts.Add("num_pages=1");
             //TODO: if we decide to keep this api integration, extend this query string to
             // allow for more exclusions
@@ -157,7 +147,7 @@ namespace DDEyC_API.Services.JSearch
                     ? new List<JobIndustry> { new() { JobIndustryList = new() { Industry = job.job_naics_name } } }
                     : new List<JobIndustry>();
 
-                var ( academicLevels, minimumLevel) = _textAnalyzer.ExtractJobMetadata(
+                var (academicLevels, minimumLevel) = _textAnalyzer.ExtractJobMetadata(
                     job.job_description,
                     job.job_title,
                     job.job_highlights?.Qualifications
@@ -209,11 +199,8 @@ namespace DDEyC_API.Services.JSearch
         {
             var normalizedFilter = JsonSerializer.Serialize(new
             {
-                filter.Title,
-                filter.CompanyName,
-                filter.Country,
-                filter.State,
-                filter.City,
+                filter.Query,
+                filter.Remote,             
                 filter.EmploymentType,
                 filter.DatePosted,
                 filter.Page,

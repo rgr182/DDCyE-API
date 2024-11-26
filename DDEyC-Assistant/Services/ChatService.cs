@@ -447,23 +447,17 @@ public class ChatService : IChatService
         {
             var queryParams = new List<KeyValuePair<string, string>>();
 
-            if (!string.IsNullOrEmpty(args.Title))
-                queryParams.Add(new KeyValuePair<string, string>("Title", args.Title));
-            if (!string.IsNullOrEmpty(args.CompanyName))
-                queryParams.Add(new KeyValuePair<string, string>("CompanyName", args.CompanyName));
-            if (!string.IsNullOrEmpty(args.Country))
-                queryParams.Add(new KeyValuePair<string, string>("Country", args.Country));
-            if (!string.IsNullOrEmpty(args.State))
-                queryParams.Add(new KeyValuePair<string, string>("State", args.State));
-            if (!string.IsNullOrEmpty(args.City))
-                queryParams.Add(new KeyValuePair<string, string>("City", args.City));
+            if (!string.IsNullOrEmpty(args.Query))
+                queryParams.Add(new KeyValuePair<string, string>("Query", args.Query));
+
             if (!string.IsNullOrEmpty(args.EmploymentType))
                 queryParams.Add(new KeyValuePair<string, string>("EmploymentType", args.EmploymentType));
             if (!string.IsNullOrEmpty(args.DatePosted))
                 queryParams.Add(new KeyValuePair<string, string>("DatePosted", args.DatePosted));
             if (args.Remote.HasValue)
                 queryParams.Add(new KeyValuePair<string, string>("Remote", args.Remote.Value.ToString()));
-
+            if (args.Page > 0)
+                queryParams.Add(new KeyValuePair<string, string>("Page", args.Page.ToString()));
             queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
 
             var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/JobListing";
