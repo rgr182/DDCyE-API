@@ -131,9 +131,16 @@ namespace DDEyC_API.Services.JSearch
 
             if (filter.Remote.HasValue)
                 queryParts.Add($"remote_jobs_only={filter.Remote.Value.ToString().ToLower()}");
-
-            queryParts.Add("page=1");
+            if (filter.Page > 0 && filter.Limit > 0){
+                queryParts.Add($"page={filter.Page}");
+            }
+            else{
+                queryParts.Add($"page=1");
+            } 
             queryParts.Add("num_pages=1");
+            //TODO: if we decide to keep this api integration, extend this query string to
+            // allow for more exclusions
+            queryParts.Add("exclude_job_publishers=LinkedIn");
             queryParts.Add($"date_posted={filter.DatePosted ?? "all"}");
 
             return $"?{string.Join("&", queryParts)}";
@@ -209,6 +216,7 @@ namespace DDEyC_API.Services.JSearch
                 filter.City,
                 filter.EmploymentType,
                 filter.DatePosted,
+                filter.Page,
                 filter.Limit
             });
             var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(normalizedFilter));

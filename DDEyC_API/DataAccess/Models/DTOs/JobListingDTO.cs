@@ -12,6 +12,7 @@ namespace DDEyC_API.Models.DTOs
     public bool? Remote { get; set; }
     public string? JobRequirements { get; set; }
     public string? DatePosted { get; set; }
+    public int Page { get; set; } = 1;
     public int Limit { get; set; } = 5;
 }
 }
