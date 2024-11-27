@@ -7,6 +7,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Mvc.Razor;
 using DDEyC_API.Services;
+using DDEyC_API.Extensions;
+using DDEyC_API.Models.JSearch;
+using DDEyC_API.Infrastructure.Http;
+using DDEyC_API.Services.JSearch;
+using DDEyC_API.Services.TextAnalysis;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -18,6 +23,7 @@ builder.Services.Configure<RazorViewEngineOptions>(options =>
 {
     options.ViewLocationFormats.Add("/Templates/Emails/{0}" + RazorViewEngine.ViewExtension);
 });
+
 // Add CORS configuration to allow any origin, method, and header
 builder.Services.AddCors(options =>
 {
@@ -31,6 +37,7 @@ builder.Services.AddCors(options =>
 
 // Add HttpContextAccessor
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -65,6 +72,8 @@ builder.Services.AddSwaggerGen(c =>
 
 AuthenticationConfig authenticationConfig = new AuthenticationConfig(builder);
 // Register your services
+
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISessionService, SessionService>();
@@ -73,15 +82,17 @@ builder.Services.AddScoped<IAuthUtils, AuthUtils>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestService, PasswordRecoveryRequestService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestRepository, PasswordRecoveryRequestRepository>();
-builder.Services.AddScoped<IJobListingService, JobListingService>();
-builder.Services.AddScoped<IJobListingRepository, JobListingRepository>();
+// builder.Services.AddScoped<IJobListingRepository, JobListingRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddSingleton<ITextNormalizationService, TextNormalizationService>();
 builder.Services.AddScoped<ICourseImportService,CourseImportService>();
+builder.Services.Configure<TextAnalysisConfig>(
+    builder.Configuration.GetSection("TextAnalysis"));
 // Register AuthContext
 builder.Services.AddDbContext<AuthContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddJSearchServices(builder.Configuration);
 builder.Services.AddMemoryCache();
 
 var app = builder.Build();

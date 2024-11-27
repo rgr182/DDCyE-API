@@ -26,6 +26,7 @@ public class ChatService : IChatService
     private readonly int _maxRetries;
     private readonly TimeSpan _retryDelay;
     private readonly TimeSpan _runTimeout;
+    private readonly IHttpContextAccessor _httpContext;
 
     public ChatService(
         IAssistantService assistantService,
@@ -33,7 +34,8 @@ public class ChatService : IChatService
         ILogger<ChatService> logger,
         HttpClient httpClient,
         IConfiguration configuration,
-        IConversationLockManager lockManager)
+        IConversationLockManager lockManager,
+          IHttpContextAccessor httpContextAccessor)
     {
         _assistantService = assistantService;
         _chatRepository = chatRepository;
@@ -41,6 +43,7 @@ public class ChatService : IChatService
         _httpClient = httpClient;
         _configuration = configuration;
         _lockManager = lockManager;
+        _httpContext = httpContextAccessor;
 
         _conversationTimeout = TimeSpan.FromMinutes(5); // Can be moved to configuration
         _threadExpirationTime = TimeSpan.FromHours(
@@ -442,22 +445,55 @@ public class ChatService : IChatService
 
         try
         {
-            var queryParams = BuildJobListingQueryParams(args);
-            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/joblistings";
+            var queryParams = new List<KeyValuePair<string, string>>();
 
-            // QueryHelpers.AddQueryString accepts IEnumerable<KeyValuePair<string, string>> directly
-            var response = await _httpClient.GetAsync(QueryHelpers.AddQueryString(url, queryParams));
-            if (response.IsSuccessStatusCode)
+            if (!string.IsNullOrEmpty(args.Query))
+                queryParams.Add(new KeyValuePair<string, string>("Query", args.Query));
+
+            if (!string.IsNullOrEmpty(args.EmploymentType))
+                queryParams.Add(new KeyValuePair<string, string>("EmploymentType", args.EmploymentType));
+            if (!string.IsNullOrEmpty(args.DatePosted))
+                queryParams.Add(new KeyValuePair<string, string>("DatePosted", args.DatePosted));
+            if (args.Remote.HasValue)
+                queryParams.Add(new KeyValuePair<string, string>("Remote", args.Remote.Value.ToString()));
+            if (args.Page > 0)
+                queryParams.Add(new KeyValuePair<string, string>("Page", args.Page.ToString()));
+            queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
+
+            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/JobListing";
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, QueryHelpers.AddQueryString(url, queryParams));
+
+            // Get the bearer token from the current HttpContext
+            var token = _httpContext.HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(token))
             {
-                return await response.Content.ReadAsStringAsync();
+                _logger.LogError("No authorization token found in request headers");
+                return JsonSerializer.Serialize(new { error = "Authorization required" });
             }
 
+            // Add the bearer token to the request
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+                return await response.Content.ReadAsStringAsync();
+
             _logger.LogError("Failed to retrieve job listings. Status: {StatusCode}", response.StatusCode);
+            _logger.LogError("Request made to {Url}", url);
+
+            // Handle specific error cases
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return JsonSerializer.Serialize(new { error = "Unauthorized access to job listings" });
+            }
+
             return JsonSerializer.Serialize(new { error = "Failed to retrieve job listings" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error building or executing job listings query");
+            _logger.LogError(ex, "Error retrieving job listings");
             return JsonSerializer.Serialize(new { error = "Failed to process job listings request" });
         }
     }
@@ -476,69 +512,55 @@ public class ChatService : IChatService
             return JsonSerializer.Serialize(new { error = "Invalid course recommendation arguments" });
         }
 
-        var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/Courses/recommendations";
-        var content = new StringContent(
-            JsonSerializer.Serialize(args, options),
-            Encoding.UTF8,
-            MediaTypeNames.Application.Json);
-
-        var response = await _httpClient.PostAsync(url, content);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            return await response.Content.ReadAsStringAsync();
-        }
+            var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/Courses/recommendations";
 
-        _logger.LogError("Failed to retrieve course recommendations. Status: {StatusCode}", response.StatusCode);
-        return JsonSerializer.Serialize(new { error = "Failed to retrieve course recommendations" });
-    }
-    // Change return type to match what QueryHelpers.AddQueryString actually needs
-    private IEnumerable<KeyValuePair<string, string>> BuildJobListingQueryParams(JobListingFilter args)
-    {
-        var queryParams = new List<KeyValuePair<string, string>>();
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
 
-        // Single-value parameters
-        if (!string.IsNullOrEmpty(args.Title))
-            queryParams.Add(new KeyValuePair<string, string>("Title", args.Title));
-        if (!string.IsNullOrEmpty(args.CompanyName))
-            queryParams.Add(new KeyValuePair<string, string>("CompanyName", args.CompanyName));
-        if (!string.IsNullOrEmpty(args.Location))
-            queryParams.Add(new KeyValuePair<string, string>("Location", args.Location));
-        if (!string.IsNullOrEmpty(args.Seniority))
-            queryParams.Add(new KeyValuePair<string, string>("Seniority", args.Seniority));
-        if (!string.IsNullOrEmpty(args.EmploymentType))
-            queryParams.Add(new KeyValuePair<string, string>("EmploymentType", args.EmploymentType));
-
-        queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
-
-        // Multi-value parameters
-        if (args.JobFunctions?.Any() == true)
-        {
-            foreach (var function in args.JobFunctions.Where(f => !string.IsNullOrEmpty(f)))
+            // Get the bearer token from the current HttpContext
+            var token = _httpContext.HttpContext?.Request.Headers.Authorization.FirstOrDefault()?.Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(token))
             {
-                queryParams.Add(new KeyValuePair<string, string>("JobFunctions", function));
+                _logger.LogError("No authorization token found in request headers");
+                return JsonSerializer.Serialize(new { error = "Authorization required" });
             }
-        }
 
-        if (args.Industries?.Any() == true)
-        {
-            foreach (var industry in args.Industries.Where(i => !string.IsNullOrEmpty(i)))
+            // Add the bearer token to the request
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            // Add the content
+            var content = new StringContent(
+                JsonSerializer.Serialize(args, options),
+                Encoding.UTF8,
+                MediaTypeNames.Application.Json);
+            request.Content = content;
+
+            var response = await _httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+                return await response.Content.ReadAsStringAsync();
+
+            _logger.LogError("Failed to retrieve course recommendations. Status: {StatusCode}", response.StatusCode);
+            _logger.LogError("Request made to {Url}", url);
+
+            // Handle specific error cases
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                queryParams.Add(new KeyValuePair<string, string>("Industries", industry));
+                return JsonSerializer.Serialize(new { error = "Unauthorized access to course recommendations" });
             }
-        }
 
-        if (args.AcademicLevels?.Any() == true)
+            // Log the error response content for debugging
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Error response content: {ErrorContent}", errorContent);
+
+            return JsonSerializer.Serialize(new { error = "Failed to retrieve course recommendations" });
+        }
+        catch (Exception ex)
         {
-            foreach (var level in args.AcademicLevels.OrderBy(x => x))
-            {
-                queryParams.Add(new KeyValuePair<string, string>("AcademicLevels", level.ToString()));
-            }
+            _logger.LogError(ex, "Error retrieving course recommendations");
+            return JsonSerializer.Serialize(new { error = "Failed to process course recommendations request" });
         }
-
-        if (args.MinimumAcademicLevel != 0)
-            queryParams.Add(new KeyValuePair<string, string>("MinimumAcademicLevel", args.MinimumAcademicLevel.ToString()));
-
-        return queryParams.Where(kvp => !string.IsNullOrEmpty(kvp.Value));
     }
     public async Task<List<MessageDto>> GetMessagesForThread(int userId, int threadId)
     {

@@ -1,16 +1,24 @@
 namespace DDEyC_API.Models.DTOs
 {
-    public class JobListingFilter
-    {
-        public string? Title { get; set; }
-        public string? CompanyName { get; set; }
-        public string? Location { get; set; }
-        public string? Seniority { get; set; }
-        public string? EmploymentType { get; set; }
-        public List<string>? JobFunctions { get; set; }
-        public List<string>? Industries { get; set; }
-        public int Limit { get; set; } = 5; // Default limit
-        public List<int> AcademicLevels { get; set; } = new List<int>();
-        public int MinimumAcademicLevel { get; set; } = 0; 
-    }
+   public class JobListingFilter
+{
+    public string? Query { get; set; }
+    public string? CountryCode { get; set; } = "MX";
+    /// <summary>
+    /// Find jobs of particular employment types, specified as a comma delimited list of the following values: 
+    /// FULLTIME, CONTRACTOR, PARTTIME, INTERN.
+    /// </summary>
+    public string? EmploymentType { get; set; }
+    public bool? Remote { get; set; }
+    /// <summary>
+    // Find jobs with specific requirements, 
+    // specified as a comma delimited list of the following values: 
+    //  under_3_years_experience, more_than_3_years_experience, no_experience, no_degree.
+    /// <summary>
+    public string? JobRequirements { get; set; }
+    // Allowed values all, today, 3days, week, month
+    public string? DatePosted { get; set; }
+    public int Page { get; set; } = 1;
+    public int Limit { get; set; } = 5;
+}
 }

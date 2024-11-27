@@ -8,30 +8,15 @@ namespace DDEyC_API.Models
 {
     public class JobListing
     {
-        [BsonId]
-        public ObjectId Id { get; set; }
-
         [BsonElement("id")]
         public int JobId { get; set; }
-
-        [BsonElement("created")]
-        [BsonSerializer(typeof(CustomDateTimeSerializer))]
-        public DateTime Created { get; set; }
-
-        [BsonElement("last_updated")]
-        [BsonSerializer(typeof(CustomDateTimeSerializer))]
-        public DateTime LastUpdated { get; set; }
-
-        [BsonElement("time_posted")]
-        public string TimePosted { get; set; }
 
         [BsonElement("title")]
         public string Title { get; set; }
 
         [BsonElement("description")]
         public string Description { get; set; }
-        [BsonElement("academic_level")]
-        public string? AcademicLevel { get; set; }
+
         [BsonElement("seniority")]
         public string Seniority { get; set; }
 
@@ -46,9 +31,6 @@ namespace DDEyC_API.Models
 
         [BsonElement("hash")]
         public string Hash { get; set; }
-
-        [BsonElement("company_id")]
-        public long? CompanyId { get; set; }
 
         [BsonElement("company_name")]
         public string CompanyName { get; set; }
@@ -68,12 +50,14 @@ namespace DDEyC_API.Models
         [BsonElement("salary")]
         public string? Salary { get; set; }
 
-        [BsonElement("applicants_count")]
-        public string? ApplicantsCount { get; set; }
+        [BsonElement("created")]
+        public DateTime Created { get; set; }
 
-        [BsonElement("linkedin_job_id")]
-        
-        public dynamic LinkedinJobId { get; set; }
+        [BsonElement("last_updated")]
+        public DateTime LastUpdated { get; set; }
+
+        [BsonElement("time_posted")]
+        public string TimePosted { get; set; }
 
         [BsonElement("country")]
         public string Country { get; set; }
@@ -81,14 +65,12 @@ namespace DDEyC_API.Models
         [BsonElement("redirected_url")]
         public string RedirectedUrl { get; set; }
 
-        [BsonElement("job_functions_collection")]
+        [BsonElement("job_functions")]
         public List<string> JobFunctions { get; set; }
 
-        [BsonElement("job_industry_collection")]
-        public List<JobIndustry> JobIndustries { get; set; }
         [BsonElement("academic_levels")]
         [BsonRepresentation(BsonType.Int32)]
-        public List<int>? AcademicLevels { get; set; }
+        public List<int> AcademicLevels { get; set; }
 
         [BsonElement("minimum_academic_level")]
         [BsonRepresentation(BsonType.Int32)]
@@ -106,6 +88,7 @@ namespace DDEyC_API.Models
         [BsonElement("industry")]
         public string Industry { get; set; }
     }
+
 
     public class CustomDateTimeSerializer : MongoDB.Bson.Serialization.Serializers.DateTimeSerializer
     {

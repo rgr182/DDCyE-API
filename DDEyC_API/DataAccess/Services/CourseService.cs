@@ -105,7 +105,11 @@ namespace DDEyC_API.Services
             IsActive = c.IsActive
         }).ToList();
         
-        _cache.Set(cacheKey, courseDtos, CacheDuration);
+         var cacheEntryOptions = new MemoryCacheEntryOptions()
+        .SetAbsoluteExpiration(CacheDuration)
+        .SetSize(1024); // Set an appropriate size based on your needs
+
+        _cache.Set(cacheKey, courseDtos, cacheEntryOptions);
         
         _logger.LogInformation("Found {Count} courses matching criteria", courseDtos.Count);
         
