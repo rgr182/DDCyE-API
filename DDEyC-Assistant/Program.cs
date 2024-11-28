@@ -79,6 +79,7 @@ builder.Services.AddHostedService<MessageCleanupService>();
 // Logging and HttpClient
 builder.Services.AddLogging();
 builder.Services.AddHttpClient();
+builder.Services.AddHttpContextAccessor();
 //Auth
 var authOptions = builder.Configuration.GetSection("AuthenticationPolicy")
     .Get<AuthenticationPolicyOptions>() ?? new AuthenticationPolicyOptions();
