@@ -128,9 +128,11 @@ namespace DDEyC_API.Services.JSearch
                 queryParts.Add($"page=1");
             }
             queryParts.Add("num_pages=1");
-            //TODO: if we decide to keep this api integration, extend this query string to
-            // allow for more exclusions
-            queryParts.Add("exclude_job_publishers=LinkedIn");
+            var excludedPublishers = _options.ExcludedJobPublishers ?? new List<string>();
+            if (excludedPublishers.Any())
+            {
+                queryParts.Add($"exclude_job_publishers={string.Join(",", excludedPublishers)}");
+            }
             queryParts.Add($"date_posted={filter.DatePosted ?? "all"}");
 
             return $"?{string.Join("&", queryParts)}";
