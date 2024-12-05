@@ -1,14 +1,17 @@
 ﻿var timeOutMessage = setTimeout(() => {
     $('#errorMessage').hide();
 }, 5000);
-// Script to send data with jQuery
+
 $(document).ready(() => {
+    $('#back').on('click', function() {
+        window.location.href = backButtonUrl;
+    });
+
     $('#resetPasswordBtn').on('click', function () {
-        // Capture the form values
         var newPassword = $('#newPassword').val();
         var confirmPassword = $('#confirmPassword').val();
         var token = $('#token').val();
-        // Verify if both fields are completed
+        
         if (newPassword === "" || confirmPassword === "") {
             $('#errorMessage').text("Favor de insertar su nueva contraseña").show();
             timeOutMessage
@@ -19,7 +22,7 @@ $(document).ready(() => {
             timeOutMessage
             return;
         }
-        // Make the request using jQuery.ajax
+        
         $.ajax({
             url: '/api/auth/resetPassword',
             type: 'POST',
@@ -28,15 +31,26 @@ $(document).ready(() => {
                 token: token,
                 newPassword: newPassword
             }),
-            success: function (response) {
-                // Hide the form and show the success message
+            success: function() {
                 $('#resetPasswordForm').hide();
                 $('#successMessage').show();
             },
-            error: function (xhr, status, error) {
-                // Show error message
-                var errorMessage = xhr.responseJSON?.title || 'Error al restablecer la contraseña';
-                alert(errorMessage);
+            error: function(xhr) {
+                let errorMessage;
+                let httpStatus = xhr.status;
+                
+                if (!navigator.onLine || httpStatus === 0) {
+                    errorMessage = 'No hay conexión con el servidor. Por favor, verifique su conexión a internet.';
+                } else if (httpStatus === 401) {
+                    errorMessage = 'El enlace de recuperación ha expirado. Por favor, solicite uno nuevo.';
+                } else if (httpStatus === 400) {
+                    errorMessage = 'La nueva contraseña no cumple con los requisitos de seguridad.';
+                } else {
+                    errorMessage = 'Ocurrió un error al restablecer la contraseña. Por favor, inténtelo de nuevo más tarde.';
+                }
+
+                $('#errorMessage').text(errorMessage).show();
+                timeOutMessage;
             }
         });
     });
