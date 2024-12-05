@@ -1,4 +1,5 @@
-﻿@namespace DDEyC_API.Views.Auth
+﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@namespace DDEyC_API.Views.Auth
 @{
     ViewData["Title"] = "Error";
 }
@@ -23,7 +24,7 @@
                 <div class="alert alert-danger shadow-lg text-center">
                     <h2>Error</h2>
                     <p>@ViewData["Error"]</p>
-                    <a href="/" class="btn btn-primary">Volver a la página principal</a>
+                    <a href="@Configuration["PasswordRecovery:UmbracoHomeUrl"]" class="btn btn-primary">Volver a la página principal</a>
                 </div>
             </div>
         </div>
