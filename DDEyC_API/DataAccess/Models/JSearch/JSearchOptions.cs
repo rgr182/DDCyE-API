@@ -6,6 +6,7 @@ namespace DDEyC_API.Models.JSearch
         public string BaseUrl { get; set; } = "https://jsearch.p.rapidapi.com";
         public int CacheExpirationMinutes { get; set; } = 30;
         public int RetryCount { get; set; } = 3;
+        public List<string> ExcludedJobPublishers { get; set; } = new List<string>();
         public int RetryDelayMilliseconds { get; set; } = 1000;
         public int TimeoutSeconds { get; set; } = 30;
         public int RateLimitPerMinute { get; set; } = 50;
