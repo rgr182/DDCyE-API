@@ -1,8 +1,15 @@
 ﻿var timeOutMessage = setTimeout(() => {
     $('#errorMessage').hide();
 }, 5000);
+
 // Script to send data with jQuery
 $(document).ready(() => {
+    // Add back button click handler
+    $('#back').on('click', function() {
+        // Use the configured URL from the view
+        window.location.href = backButtonUrl;
+    });
+
     $('#resetPasswordBtn').on('click', function () {
         // Capture the form values
         var newPassword = $('#newPassword').val();
