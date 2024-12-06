@@ -1,4 +1,5 @@
 using DDEyC_API.Models.JSearch;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.RateLimit;
 using Polly.Retry;
@@ -16,19 +17,20 @@ namespace DDEyC_API.Infrastructure.Http
 
         public ResilientHttpClient(
             HttpClient httpClient,
-            JSearchOptions options,
+            IOptions<JSearchOptions> options,
             ILogger<ResilientHttpClient> logger)
         {
             _httpClient = httpClient;
             _logger = logger;
+            var config = options.Value;
 
             _retryPolicy = Policy<HttpResponseMessage>
                 .Handle<HttpRequestException>()
                 .Or<TimeoutException>()
                 .WaitAndRetryAsync(
-                    options.RetryCount,
+                    config.RetryCount,
                     retryAttempt => TimeSpan.FromMilliseconds(
-                        options.RetryDelayMilliseconds * Math.Pow(2, retryAttempt - 1)),
+                        config.RetryDelayMilliseconds * Math.Pow(2, retryAttempt - 1)),
                     onRetry: (context, timeSpan, retryCount) =>
                     {
                         var exception = context.Exception;
@@ -40,15 +42,16 @@ namespace DDEyC_API.Infrastructure.Http
                             timeSpan.TotalMilliseconds,
                             exception.GetType().Name);
                     });
+
             _rateLimitPolicy = Policy.RateLimitAsync(
-                options.RateLimitPerMinute,
+                config.RateLimitPerMinute,
                 TimeSpan.FromMinutes(1));
 
             _timeoutPolicy = Policy.TimeoutAsync(
-                TimeSpan.FromSeconds(options.TimeoutSeconds));
+                TimeSpan.FromSeconds(config.TimeoutSeconds));
 
             // Configure default headers
-            _httpClient.DefaultRequestHeaders.Add("X-RapidAPI-Key", options.ApiKey);
+            _httpClient.DefaultRequestHeaders.Add("X-RapidAPI-Key", config.ApiKey);
             _httpClient.DefaultRequestHeaders.Add("X-RapidAPI-Host", "jsearch.p.rapidapi.com");
         }
 
