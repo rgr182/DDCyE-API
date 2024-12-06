@@ -2,6 +2,7 @@ using DDEyC_API.Infrastructure.Caching;
 using DDEyC_API.Infrastructure.Http;
 using DDEyC_API.Models.JSearch;
 using DDEyC_API.Services.JSearch;
+using Microsoft.Extensions.Options;
 
 namespace DDEyC_API.Extensions
 {
@@ -27,10 +28,24 @@ namespace DDEyC_API.Extensions
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            // Configure options
-            // services.Configure<JSearchOptions>(
-            //     configuration.GetSection("JSearch"));
-            services.AddSingleton<JSearchOptions>(configuration.GetSection("JSearch").Get<JSearchOptions>());
+            // Configure options using Configure<T>
+            services.Configure<JSearchOptions>(
+                configuration.GetSection("JSearch"));
+
+            // Validate options
+            services.PostConfigure<JSearchOptions>(options =>
+            {
+                if (string.IsNullOrEmpty(options.ApiKey))
+                {
+                    throw new InvalidOperationException("JSearch ApiKey is required but was not configured");
+                }
+
+                if (string.IsNullOrEmpty(options.BaseUrl))
+                {
+                    throw new InvalidOperationException("JSearch BaseUrl is required but was not configured");
+                }
+            });
+
             // Add caching
             services.AddCachingServices(configuration);
 

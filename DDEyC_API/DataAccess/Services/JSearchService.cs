@@ -37,8 +37,7 @@ namespace DDEyC_API.Services.JSearch
             _textNormalizationService = textNormalizationService;
             _options = options.Value;
             _logger = logger;
-            _logger.LogInformation("TextAnalysis Config: {@Config}", textAnalysisConfig.Value);
-
+            
             if (textAnalysisConfig.Value == null || textAnalysisConfig.Value.SeniorityPatterns == null)
             {
                 _logger.LogError("TextAnalysis configuration is missing or invalid");
@@ -129,10 +128,14 @@ namespace DDEyC_API.Services.JSearch
             }
             queryParts.Add("num_pages=1");
             var excludedPublishers = _options.ExcludedJobPublishers ?? new List<string>();
+            foreach (var excludedPublisher in excludedPublishers){
+                _logger.LogInformation("Excluded job publisher: {ExcludedJobPublisher}", excludedPublisher);
+            }
             if (excludedPublishers.Any())
             {
                 queryParts.Add($"exclude_job_publishers={string.Join(",", excludedPublishers)}");
             }
+            _logger.LogInformation("Excluded job publishers: {ExcludedJobPublishers}", excludedPublishers.Count);
             queryParts.Add($"date_posted={filter.DatePosted ?? "all"}");
 
             return $"?{string.Join("&", queryParts)}";
