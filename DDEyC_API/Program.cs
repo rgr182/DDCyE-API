@@ -13,6 +13,7 @@ using DDEyC_API.Infrastructure.Http;
 using DDEyC_API.Services.JSearch;
 using DDEyC_API.Services.TextAnalysis;
 using DDEyC_API.Shared.Configuration;
+using DDEyC_Auth.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -92,7 +93,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
-
+builder.Services.AddScoped<IAuthUtils, AuthUtils>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestService, PasswordRecoveryRequestService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestRepository, PasswordRecoveryRequestRepository>();
