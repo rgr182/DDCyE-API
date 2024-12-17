@@ -1,3 +1,4 @@
+using DDEyC_API.Shared.Configuration;
 using DDEyC_Assistant.Data;
 using DDEyC_Assistant.Extensions;
 using DDEyC_Assistant.Options;
@@ -81,10 +82,11 @@ builder.Services.AddLogging();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 //Auth
-var authOptions = builder.Configuration.GetSection("AuthenticationPolicy")
-    .Get<AuthenticationPolicyOptions>() ?? new AuthenticationPolicyOptions();
+// var authOptions = builder.Configuration.GetSection("AuthenticationPolicy")
+//     .Get<AuthenticationPolicyOptions>() ?? new AuthenticationPolicyOptions();
 
-builder.Services.AddAuthenticationPolicy(authOptions);
+// builder.Services.AddAuthenticationPolicy(authOptions);
+builder.Services.ConfigureAuthentication(builder.Configuration);
 // Add configuration for DDEyC API URL
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 

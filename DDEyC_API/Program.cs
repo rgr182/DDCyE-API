@@ -2,7 +2,7 @@ using DDEyC_API.DataAccess.Context;
 using DDEyC_API.DataAccess.Repositories;
 using DDEyC_API.DataAccess.Services;
 using DDEyC_Auth.Infraestructure;
-using DDEyC_Auth.Utils;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Mvc.Razor;
@@ -12,6 +12,7 @@ using DDEyC_API.Models.JSearch;
 using DDEyC_API.Infrastructure.Http;
 using DDEyC_API.Services.JSearch;
 using DDEyC_API.Services.TextAnalysis;
+using DDEyC_API.Shared.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -25,19 +26,32 @@ builder.Services.Configure<RazorViewEngineOptions>(options =>
 });
 
 // Add CORS configuration to allow any origin, method, and header
+// builder.Services.AddCors(options =>
+// {
+//     options.AddPolicy("AllowAll", policy =>
+//     {
+//         policy.AllowAnyOrigin()
+//               .AllowAnyMethod()
+//               .AllowAnyHeader();
+//     });
+// });
+//TODO add null check
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+    options.AddPolicy("AllowSpecificOrigins",
+        builder =>
+        {
+            builder
+                .WithOrigins(configuration.GetSection("Cors:AllowedOrigins" ?? string.Empty)
+                    .Get<string[]>())
+                .AllowCredentials()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
 });
-
 // Add HttpContextAccessor
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-
+builder.Services.ConfigureAuthentication(builder.Configuration);
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -70,7 +84,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-AuthenticationConfig authenticationConfig = new AuthenticationConfig(builder);
+
 // Register your services
 
 
@@ -78,7 +92,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
-builder.Services.AddScoped<IAuthUtils, AuthUtils>();
+
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestService, PasswordRecoveryRequestService>();
 builder.Services.AddScoped<IPasswordRecoveryRequestRepository, PasswordRecoveryRequestRepository>();

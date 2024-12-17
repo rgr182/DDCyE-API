@@ -2,6 +2,9 @@
 using DDEyC_API.DataAccess.Services;
 using Microsoft.AspNetCore.Authorization;
 using DDEyC_API.DataAccess.Models.DTOs;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 
 namespace DDEyC.Controllers
 {
@@ -14,18 +17,21 @@ namespace DDEyC.Controllers
         private readonly ISessionService _sessionService;
         private readonly IUserService _usersService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IHostEnvironment _hostEnvironment;
 
         public AuthController(IPasswordRecoveryRequestService passwordRecoveryRequestService,
                               ILogger<AuthController> logger,
                               ISessionService sessionService,
                               IUserService usersService,
-                              IHttpContextAccessor httpContextAccessor)
+                              IHttpContextAccessor httpContextAccessor,
+                              IHostEnvironment hostEnvironment)
         {
             _passwordRecoveryRequestService = passwordRecoveryRequestService;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
             _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
-            _httpContextAccessor=httpContextAccessor;
+            _httpContextAccessor = httpContextAccessor;
+            _hostEnvironment = hostEnvironment;
         }
 
         #region API Endpoints
@@ -46,11 +52,37 @@ namespace DDEyC.Controllers
                 }
 
                 var session = await _sessionService.SaveSession(userD);
+
+                var isProd = _hostEnvironment.IsProduction();
+
+                if (isProd || Request.Cookies["prefer-cookies"] != null)
+                {
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, userD.UserId.ToString()),
+                        new Claim(ClaimTypes.Email, userD.Email),
+                        new Claim("session_id", session.SessionId.ToString()),
+                        new Claim("token", session.UserToken)
+                    };
+
+                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var authProperties = new AuthenticationProperties
+                    {
+                        IsPersistent = true,
+                        ExpiresUtc = session.ExpirationDate
+                    };
+
+                    await HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        new ClaimsPrincipal(claimsIdentity),
+                        authProperties);
+
+                    // Return minimal info when using cookies
+                    return Ok(new { authenticated = true, expiresUtc = session.ExpirationDate });
+                }
+
+                // Return full session info for JWT/bearer token auth
                 return Ok(session);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("Email/password do not match");
             }
             catch (Exception ex)
             {
@@ -58,37 +90,43 @@ namespace DDEyC.Controllers
                 return Problem("An error occurred during login. Please contact the System Administrator");
             }
         }
-
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
             try
             {
-                // Obtener el token del encabezado de autorización
-                var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                var isProd = _hostEnvironment.IsProduction();
+                
+                if (isProd || Request.Cookies["prefer-cookies"] != null)
+                {
+                    // Handle cookie-based logout
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+                
+                // Get token either from cookie claims or bearer token
+                var token = User.FindFirst("token")?.Value ?? 
+                           HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
                 if (string.IsNullOrEmpty(token))
                 {
                     return BadRequest("Token is missing.");
                 }
 
-                // Llamar al método EndSessionByToken del servicio
                 var result = await _sessionService.EndSessionByToken(token);
                 if (result)
                 {
                     return Ok("Session ended successfully.");
                 }
-                else
-                {
-                    return BadRequest("Unable to end session.");
-                }
+                
+                return BadRequest("Unable to end session.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while ending session with token.");
+                _logger.LogError(ex, "Error while ending session");
                 return StatusCode(500, "Internal server error");
             }
         }
+
         /// <summary>
         /// Retrieves a session by ID.
         /// </summary>
@@ -123,21 +161,21 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var token = _httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                var token = User.FindFirst("token")?.Value ?? 
+                           HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+
                 if (string.IsNullOrEmpty(token))
                 {
                     return Unauthorized("No token provided");
                 }
 
-                var session = await _sessionService.ValidateSession(token); 
-
+                var session = await _sessionService.ValidateSession(token);
                 var remainingMinutes = (int)(session.ExpirationDate - DateTime.UtcNow).TotalMinutes;
-                return Ok(new { Session = session, Message = $"Token expires in {remainingMinutes} minute(s)." });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                _logger.LogError(ex, "Invalid session");
-                return Unauthorized("Invalid session");
+                
+                return Ok(new { 
+                    Session = session, 
+                    Message = $"Token expires in {remainingMinutes} minute(s)." 
+                });
             }
             catch (Exception ex)
             {
@@ -145,8 +183,7 @@ namespace DDEyC.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
-
+    
         //email
         [AllowAnonymous]
         [HttpGet("passwordRecoveryView")]
@@ -232,7 +269,7 @@ namespace DDEyC.Controllers
                 // Call the password recovery service
                 var result = await _passwordRecoveryRequestService.ResetPassword(resetPasswordDto.Token, resetPasswordDto.NewPassword);
 
-               return Ok(result);
+                return Ok(result);
             }
             catch (Exception ex)
             {

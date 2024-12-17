@@ -1,7 +1,7 @@
+using DDEyC_Assistant.Policies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.Logging;
-using DDEyC_Assistant.Policies;
+using System.Security.Claims;
 
 namespace DDEyC_Assistant.Attributes
 {
@@ -12,32 +12,41 @@ namespace DDEyC_Assistant.Attributes
             var httpContext = context.HttpContext;
             var logger = httpContext.RequestServices.GetRequiredService<ILogger<RequireAuthAttribute>>();
             var authPolicy = httpContext.RequestServices.GetRequiredService<IAuthenticationPolicy>();
+            var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
 
-            var token = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            string? token = null;
+
+            // Try to get token from cookie first
+            var tokenClaim = httpContext.User?.FindFirst("token");
+            if (tokenClaim != null)
+            {
+                token = tokenClaim.Value;
+            }
+            else
+            {
+                // Fall back to bearer token
+                token = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            }
 
             if (string.IsNullOrEmpty(token))
             {
-                logger.LogWarning("Authorization header is missing or empty. Request path: {Path}", httpContext.Request.Path);
+                logger.LogWarning("No authentication token found. Request path: {Path}", httpContext.Request.Path);
                 context.Result = new UnauthorizedResult();
                 return;
             }
 
             var httpClientFactory = httpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
-            var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
             var httpClient = httpClientFactory.CreateClient("AuthClient");
             var ddEycApiUrl = configuration["AppSettings:BackendUrl"];
 
             try
             {
-                // Move request creation inside the policy execution
                 var response = await authPolicy.RetryPolicy.ExecuteAsync(async () =>
                 {
-                    // Create a new request for each attempt
                     var request = new HttpRequestMessage(HttpMethod.Get, $"{ddEycApiUrl}/api/auth/validateSession");
                     request.Headers.Add("Authorization", $"Bearer {token}");
 
                     logger.LogDebug("Sending validation request to: {Url}", request.RequestUri);
-
                     return await httpClient.SendAsync(request);
                 });
 
@@ -71,5 +80,4 @@ namespace DDEyC_Assistant.Attributes
             await next();
         }
     }
-
 }
