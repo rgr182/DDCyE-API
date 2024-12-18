@@ -96,15 +96,15 @@ namespace DDEyC.Controllers
             try
             {
                 var isProd = _hostEnvironment.IsProduction();
-                
+
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
                     // Handle cookie-based logout
                     await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 }
-                
+
                 // Get token either from cookie claims or bearer token
-                var token = User.FindFirst("token")?.Value ?? 
+                var token = User.FindFirst("token")?.Value ??
                            HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
                 if (string.IsNullOrEmpty(token))
@@ -117,7 +117,7 @@ namespace DDEyC.Controllers
                 {
                     return Ok("Session ended successfully.");
                 }
-                
+
                 return BadRequest("Unable to end session.");
             }
             catch (Exception ex)
@@ -161,8 +161,26 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var token = User.FindFirst("token")?.Value ?? 
-                           HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                var isProd = _hostEnvironment.IsProduction();
+                string? token = null;
+
+                // Try to get token from cookie claims first
+                if (isProd || Request.Cookies["prefer-cookies"] != null)
+                {
+                    var tokenClaim = User.FindFirst("token");
+                    if (tokenClaim != null)
+                    {
+                        token = tokenClaim.Value;
+                        _logger.LogInformation("Using token from cookie claims for validation");
+                    }
+                }
+
+                // Fall back to bearer token if no cookie token found
+                if (string.IsNullOrEmpty(token))
+                {
+                    token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                    _logger.LogInformation("Using bearer token from Authorization header for validation");
+                }
 
                 if (string.IsNullOrEmpty(token))
                 {
@@ -171,10 +189,35 @@ namespace DDEyC.Controllers
 
                 var session = await _sessionService.ValidateSession(token);
                 var remainingMinutes = (int)(session.ExpirationDate - DateTime.UtcNow).TotalMinutes;
-                
-                return Ok(new { 
-                    Session = session, 
-                    Message = $"Token expires in {remainingMinutes} minute(s)." 
+
+                // If using cookies, refresh the authentication cookie
+                if (isProd || Request.Cookies["prefer-cookies"] != null)
+                {
+                    var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),
+                new Claim("session_id", session.SessionId.ToString()),
+                new Claim("token", token)
+            };
+
+                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var authProperties = new AuthenticationProperties
+                    {
+                        IsPersistent = true,
+                        ExpiresUtc = session.ExpirationDate
+                    };
+
+                    await HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        new ClaimsPrincipal(claimsIdentity),
+                        authProperties);
+                }
+
+                return Ok(new
+                {
+                    Session = session,
+                    Message = $"Token expires in {remainingMinutes} minute(s).",
+                    AuthType = isProd || Request.Cookies["prefer-cookies"] != null ? "Cookie" : "Bearer"
                 });
             }
             catch (Exception ex)
@@ -183,7 +226,6 @@ namespace DDEyC.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-    
         //email
         [AllowAnonymous]
         [HttpGet("passwordRecoveryView")]

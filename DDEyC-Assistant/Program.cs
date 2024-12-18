@@ -65,9 +65,16 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowSpecificOrigins",
         builder =>
         {
+            var originsSection = configuration.GetSection("Cors:AllowedOrigins");
+            var origins = originsSection.Get<string[]>();
+            
+            if (origins == null || origins.Length == 0)
+            {
+                throw new InvalidOperationException("CORS origins are not configured correctly in appsettings.json");
+            }
+
             builder
-                .WithOrigins(configuration.GetSection("Cors:AllowedOrigins")
-                    .Get<string[]>())
+                .WithOrigins(origins)
                 .AllowCredentials()
                 .AllowAnyMethod()
                 .AllowAnyHeader();
@@ -106,7 +113,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowSpecificOrigins");
+app.UseRouting();                    
+app.UseCors("AllowSpecificOrigins"); 
+app.UseAuthentication();             
+app.UseAuthorization(); 
 
 app.MapControllers();
 

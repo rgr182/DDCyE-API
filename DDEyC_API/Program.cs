@@ -42,14 +42,22 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowSpecificOrigins",
         builder =>
         {
+            var originsSection = configuration.GetSection("Cors:AllowedOrigins");
+            var origins = originsSection.Get<string[]>();
+            
+            if (origins == null || origins.Length == 0)
+            {
+                throw new InvalidOperationException("CORS origins are not configured correctly in appsettings.json");
+            }
+
             builder
-                .WithOrigins(configuration.GetSection("Cors:AllowedOrigins" ?? string.Empty)
-                    .Get<string[]>())
+                .WithOrigins(origins)
                 .AllowCredentials()
                 .AllowAnyMethod()
                 .AllowAnyHeader();
         });
 });
+
 // Add HttpContextAccessor
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.ConfigureAuthentication(builder.Configuration);
