@@ -18,13 +18,15 @@ namespace DDEyC.Controllers
         private readonly IUserService _usersService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IHostEnvironment _hostEnvironment;
+        private readonly IConfiguration _configuration;
 
         public AuthController(IPasswordRecoveryRequestService passwordRecoveryRequestService,
                               ILogger<AuthController> logger,
                               ISessionService sessionService,
                               IUserService usersService,
                               IHttpContextAccessor httpContextAccessor,
-                              IHostEnvironment hostEnvironment)
+                              IHostEnvironment hostEnvironment,
+                              IConfiguration configuration)
         {
             _passwordRecoveryRequestService = passwordRecoveryRequestService;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -32,6 +34,7 @@ namespace DDEyC.Controllers
             _usersService = usersService ?? throw new ArgumentNullException(nameof(usersService));
             _httpContextAccessor = httpContextAccessor;
             _hostEnvironment = hostEnvironment;
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         #region API Endpoints
@@ -45,40 +48,39 @@ namespace DDEyC.Controllers
         {
             try
             {
-                var userD = await _usersService.Login(email, password);
-                if (userD == null)
+                var user = await _usersService.Login(email, password);
+                if (user == null)
                 {
                     return Unauthorized("Email/password do not match");
                 }
 
-                var session = await _sessionService.SaveSession(userD);
-
+                var session = await _sessionService.SaveSession(user);
                 var isProd = _hostEnvironment.IsProduction();
 
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
-                    var claims = new List<Claim>
+                    // Create JWT token
+                    var token = session.UserToken; // This is already a JWT from SaveSession
+
+                    // Configure cookie options
+                    var cookieOptions = new CookieOptions
                     {
-                        new Claim(ClaimTypes.NameIdentifier, userD.UserId.ToString()),
-                        new Claim(ClaimTypes.Email, userD.Email),
-                        new Claim("session_id", session.SessionId.ToString()),
-                        new Claim("token", session.UserToken)
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
+                        Domain = _configuration["Authentication:CookieDomain"],
+                        Path = "/",
+                        Expires = session.ExpirationDate
                     };
 
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties
+                    // Set JWT in cookie
+                    Response.Cookies.Append("DDEyC.Auth", token, cookieOptions);
+
+                    return Ok(new
                     {
-                        IsPersistent = true,
-                        ExpiresUtc = session.ExpirationDate
-                    };
-
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
-
-                    // Return minimal info when using cookies
-                    return Ok(new { authenticated = true, expiresUtc = session.ExpirationDate });
+                        authenticated = true,
+                        expiresUtc = session.ExpirationDate
+                    });
                 }
 
                 // Return full session info for JWT/bearer token auth
@@ -155,6 +157,7 @@ namespace DDEyC.Controllers
         /// <summary>
         /// Validates a session token.
         /// </summary>
+
         [HttpGet("validateSession")]
         [AllowAnonymous]
         public async Task<IActionResult> ValidateSession()
@@ -164,15 +167,11 @@ namespace DDEyC.Controllers
                 var isProd = _hostEnvironment.IsProduction();
                 string? token = null;
 
-                // Try to get token from cookie claims first
+                // Try to get token from cookie first
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
-                    var tokenClaim = User.FindFirst("token");
-                    if (tokenClaim != null)
-                    {
-                        token = tokenClaim.Value;
-                        _logger.LogInformation("Using token from cookie claims for validation");
-                    }
+                    token = Request.Cookies["DDEyC.Auth"];
+                    _logger.LogInformation("Using JWT from cookie for validation");
                 }
 
                 // Fall back to bearer token if no cookie token found
@@ -190,27 +189,21 @@ namespace DDEyC.Controllers
                 var session = await _sessionService.ValidateSession(token);
                 var remainingMinutes = (int)(session.ExpirationDate - DateTime.UtcNow).TotalMinutes;
 
-                // If using cookies, refresh the authentication cookie
+                // If using cookies, refresh the JWT cookie
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
-                    var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),
-                new Claim("session_id", session.SessionId.ToString()),
-                new Claim("token", token)
-            };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties
+                    // Update the cookie with a fresh expiration time
+                    var cookieOptions = new CookieOptions
                     {
-                        IsPersistent = true,
-                        ExpiresUtc = session.ExpirationDate
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
+                        Domain = _configuration["Authentication:CookieDomain"],
+                        Path = "/",
+                        Expires = session.ExpirationDate
                     };
 
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
+                    Response.Cookies.Append("DDEyC.Auth", token, cookieOptions);
                 }
 
                 return Ok(new
