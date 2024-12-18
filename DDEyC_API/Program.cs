@@ -127,7 +127,7 @@ app.UseStaticFiles();
 app.UseRouting();
 
 // Enable CORS after routing but before authentication/authorization
-app.UseCors("AllowAll");
+app.UseCors("AllowSpecificOrigins");
 
 // Enable Authentication and Authorization after UseRouting
 app.UseAuthentication();

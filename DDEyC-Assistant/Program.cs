@@ -10,7 +10,7 @@ using Microsoft.OpenApi.Models;
 using OpenAI;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var configuration = builder.Configuration;
 // Add services to the container.
 builder.Services.AddControllers();
 
@@ -62,12 +62,15 @@ builder.Services.AddDbContext<DataContext>(options =>
 // CORS configuration
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAllOrigins",
+    options.AddPolicy("AllowSpecificOrigins",
         builder =>
         {
-            builder.AllowAnyOrigin()
-                   .AllowAnyMethod()
-                   .AllowAnyHeader();
+            builder
+                .WithOrigins(configuration.GetSection("Cors:AllowedOrigins")
+                    .Get<string[]>())
+                .AllowCredentials()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
         });
 });
 
@@ -82,10 +85,10 @@ builder.Services.AddLogging();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 //Auth
-// var authOptions = builder.Configuration.GetSection("AuthenticationPolicy")
-//     .Get<AuthenticationPolicyOptions>() ?? new AuthenticationPolicyOptions();
+var authOptions = builder.Configuration.GetSection("AuthenticationPolicy")
+    .Get<AuthenticationPolicyOptions>() ?? new AuthenticationPolicyOptions();
 
-// builder.Services.AddAuthenticationPolicy(authOptions);
+builder.Services.AddAuthenticationPolicy(authOptions);
 builder.Services.ConfigureAuthentication(builder.Configuration);
 // Add configuration for DDEyC API URL
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
@@ -103,7 +106,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAllOrigins");
+app.UseCors("AllowSpecificOrigins");
 
 app.MapControllers();
 
