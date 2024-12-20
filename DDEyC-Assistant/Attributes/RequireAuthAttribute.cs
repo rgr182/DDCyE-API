@@ -1,8 +1,11 @@
 namespace DDEyC_Assistant.Attributes;
 
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using DDEyC_Assistant.Policies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.IdentityModel.Tokens;
 
 public class RequireAuthAttribute : Attribute, IAsyncActionFilter
 {
@@ -10,23 +13,20 @@ public class RequireAuthAttribute : Attribute, IAsyncActionFilter
     {
         var httpContext = context.HttpContext;
         var logger = httpContext.RequestServices.GetRequiredService<ILogger<RequireAuthAttribute>>();
-        var authPolicy = httpContext.RequestServices.GetRequiredService<IAuthenticationPolicy>();
         var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
         var isProd = httpContext.RequestServices.GetRequiredService<IHostEnvironment>().IsProduction();
 
-        string? token = null;
-
         try
         {
-            // Get JWT either from cookie or Authorization header
+            string? token = null;
             var preferCookies = httpContext.Request.Cookies["prefer-cookies"] != null || isProd;
-            
+
             if (preferCookies)
             {
                 token = httpContext.Request.Cookies["DDEyC.Auth"];
                 logger.LogInformation("Using JWT from cookie");
             }
-            else 
+            else
             {
                 token = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
                 logger.LogInformation("Using bearer token from Authorization header");
@@ -42,41 +42,29 @@ public class RequireAuthAttribute : Attribute, IAsyncActionFilter
             // Store the JWT token in HttpContext.Items for use in controllers
             httpContext.Items["JwtToken"] = token;
 
-            var httpClientFactory = httpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
-            var httpClient = httpClientFactory.CreateClient("AuthClient");
-            var ddEycApiUrl = configuration["AppSettings:BackendUrl"];
+            // Validate the token
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(configuration["Jwt:Key"]);
 
-            var response = await authPolicy.RetryPolicy.ExecuteAsync(async () =>
+            try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{ddEycApiUrl}/api/auth/validateSession");
-                
-                if (preferCookies)
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
                 {
-                    var cookieContainer = new System.Net.CookieContainer();
-                    cookieContainer.Add(new Uri(ddEycApiUrl), new System.Net.Cookie("DDEyC.Auth", token));
-                    
-                    var handler = new HttpClientHandler
-                    {
-                        CookieContainer = cookieContainer,
-                        UseCookies = true
-                    };
-                    
-                    httpClient = new HttpClient(handler);
-                }
-                else
-                {
-                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                }
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ClockSkew = TimeSpan.Zero
+                }, out var validatedToken);
 
-                return await httpClient.SendAsync(request);
-            });
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new UnauthorizedAccessException("Token validation failed");
+                await next();
             }
-
-            await next();
+            catch (SecurityTokenException)
+            {
+                logger.LogWarning("Invalid token for request path: {Path}", httpContext.Request.Path);
+                context.Result = new UnauthorizedResult();
+                return;
+            }
         }
         catch (Exception ex)
         {

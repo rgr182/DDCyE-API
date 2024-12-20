@@ -1,7 +1,6 @@
 using DDEyC_API.DataAccess.Context;
 using DDEyC_API.DataAccess.Repositories;
 using DDEyC_API.DataAccess.Services;
-using DDEyC_Auth.Infraestructure;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
