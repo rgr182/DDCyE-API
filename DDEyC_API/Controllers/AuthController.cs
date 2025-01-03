@@ -99,36 +99,52 @@ namespace DDEyC.Controllers
             {
                 var isProd = _hostEnvironment.IsProduction();
 
+                // Get JWT either from cookie or Authorization header
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
-                    // Handle cookie-based logout
-                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                }
+                    token = Request.Cookies["DDEyC.Auth"];
 
-                // Get token either from cookie claims or bearer token
-                var token = User.FindFirst("token")?.Value ??
-                           HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                    // Clear the JWT cookie
+                    var cookieOptions = new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
+                        Domain = _configuration["Authentication:CookieDomain"],
+                        Path = "/",
+                        Expires = DateTime.UtcNow.AddDays(-1)
+                    };
+
+                    Response.Cookies.Delete("DDEyC.Auth", cookieOptions);
+                    _logger.LogInformation("Cleared JWT cookie");
+                }
+                else
+                {
+                    token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                }
 
                 if (string.IsNullOrEmpty(token))
                 {
-                    return BadRequest("Token is missing.");
+                    _logger.LogWarning("No token found during logout attempt");
+                    return BadRequest("No token provided");
                 }
 
+                // Invalidate the JWT token in the backend
                 var result = await _sessionService.EndSessionByToken(token);
-                if (result)
+                if (!result)
                 {
-                    return Ok("Session ended successfully.");
+                    _logger.LogWarning("Failed to end session for token");
+                    return BadRequest("Failed to end session");
                 }
 
-                return BadRequest("Unable to end session.");
+                return Ok("Logged out successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while ending session");
+                _logger.LogError(ex, "Error during logout");
                 return StatusCode(500, "Internal server error");
             }
         }
-
         /// <summary>
         /// Retrieves a session by ID.
         /// </summary>
