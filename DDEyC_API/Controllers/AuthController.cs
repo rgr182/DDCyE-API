@@ -98,7 +98,7 @@ namespace DDEyC.Controllers
             try
             {
                 var isProd = _hostEnvironment.IsProduction();
-
+                var token = string.Empty;
                 // Get JWT either from cookie or Authorization header
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
