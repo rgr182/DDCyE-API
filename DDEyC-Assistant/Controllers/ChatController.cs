@@ -395,13 +395,21 @@ namespace DDEyC_Assistant.Controllers
         {
             try
             {
-                var authHeader = HttpContext.Request.Headers["Authorization"].FirstOrDefault();
-                if (string.IsNullOrEmpty(authHeader))
+                // Get the JWT token we stored in HttpContext.Items from RequireAuthAttribute
+                var token = HttpContext.Items["JwtToken"] as string;
+
+                if (string.IsNullOrEmpty(token))
                 {
-                    throw new UnauthorizedAccessException("Invalid Authorization header");
+                    // Fallback to checking auth header directly (shouldn't happen, but just in case)
+                    token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
                 }
 
-                var token = authHeader.Trim();
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogError("No token found in context or Authorization header");
+                    throw new UnauthorizedAccessException("No authentication token found");
+                }
+
                 var handler = new JwtSecurityTokenHandler();
 
                 if (!handler.CanReadToken(token))

@@ -1,8 +1,7 @@
 using DDEyC_API.DataAccess.Context;
 using DDEyC_API.DataAccess.Repositories;
 using DDEyC_API.DataAccess.Services;
-using DDEyC_Auth.Infraestructure;
-using DDEyC_Auth.Utils;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Mvc.Razor;
@@ -12,6 +11,8 @@ using DDEyC_API.Models.JSearch;
 using DDEyC_API.Infrastructure.Http;
 using DDEyC_API.Services.JSearch;
 using DDEyC_API.Services.TextAnalysis;
+using DDEyC_API.Shared.Configuration;
+using DDEyC_Auth.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -25,19 +26,40 @@ builder.Services.Configure<RazorViewEngineOptions>(options =>
 });
 
 // Add CORS configuration to allow any origin, method, and header
+// builder.Services.AddCors(options =>
+// {
+//     options.AddPolicy("AllowAll", policy =>
+//     {
+//         policy.AllowAnyOrigin()
+//               .AllowAnyMethod()
+//               .AllowAnyHeader();
+//     });
+// });
+//TODO add null check
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+    options.AddPolicy("AllowSpecificOrigins",
+        builder =>
+        {
+            var originsSection = configuration.GetSection("Cors:AllowedOrigins");
+            var origins = originsSection.Get<string[]>();
+            
+            if (origins == null || origins.Length == 0)
+            {
+                throw new InvalidOperationException("CORS origins are not configured correctly in appsettings.json");
+            }
+
+            builder
+                .WithOrigins(origins)
+                .AllowCredentials()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
 });
 
 // Add HttpContextAccessor
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-
+builder.Services.ConfigureAuthentication(builder.Configuration);
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -70,7 +92,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-AuthenticationConfig authenticationConfig = new AuthenticationConfig(builder);
+
 // Register your services
 
 
@@ -112,7 +134,7 @@ app.UseStaticFiles();
 app.UseRouting();
 
 // Enable CORS after routing but before authentication/authorization
-app.UseCors("AllowAll");
+app.UseCors("AllowSpecificOrigins");
 
 // Enable Authentication and Authorization after UseRouting
 app.UseAuthentication();

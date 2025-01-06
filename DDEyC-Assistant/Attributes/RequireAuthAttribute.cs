@@ -1,75 +1,76 @@
+namespace DDEyC_Assistant.Attributes;
+
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using DDEyC_Assistant.Policies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.Logging;
-using DDEyC_Assistant.Policies;
+using Microsoft.IdentityModel.Tokens;
 
-namespace DDEyC_Assistant.Attributes
+public class RequireAuthAttribute : Attribute, IAsyncActionFilter
 {
-    public class RequireAuthAttribute : Attribute, IAsyncActionFilter
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
-        {
-            var httpContext = context.HttpContext;
-            var logger = httpContext.RequestServices.GetRequiredService<ILogger<RequireAuthAttribute>>();
-            var authPolicy = httpContext.RequestServices.GetRequiredService<IAuthenticationPolicy>();
+        var httpContext = context.HttpContext;
+        var logger = httpContext.RequestServices.GetRequiredService<ILogger<RequireAuthAttribute>>();
+        var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var isProd = httpContext.RequestServices.GetRequiredService<IHostEnvironment>().IsProduction();
 
-            var token = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+        try
+        {
+            string? token = null;
+            var preferCookies = httpContext.Request.Cookies["prefer-cookies"] != null || isProd;
+
+            if (preferCookies)
+            {
+                token = httpContext.Request.Cookies["DDEyC.Auth"];
+                logger.LogInformation("Using JWT from cookie");
+            }
+            else
+            {
+                token = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                logger.LogInformation("Using bearer token from Authorization header");
+            }
 
             if (string.IsNullOrEmpty(token))
             {
-                logger.LogWarning("Authorization header is missing or empty. Request path: {Path}", httpContext.Request.Path);
+                logger.LogWarning("No authentication token found. Request path: {Path}", httpContext.Request.Path);
                 context.Result = new UnauthorizedResult();
                 return;
             }
 
-            var httpClientFactory = httpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
-            var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
-            var httpClient = httpClientFactory.CreateClient("AuthClient");
-            var ddEycApiUrl = configuration["AppSettings:BackendUrl"];
+            // Store the JWT token in HttpContext.Items for use in controllers
+            httpContext.Items["JwtToken"] = token;
+
+            // Validate the token
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(configuration["Jwt:Key"]);
 
             try
             {
-                // Move request creation inside the policy execution
-                var response = await authPolicy.RetryPolicy.ExecuteAsync(async () =>
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
                 {
-                    // Create a new request for each attempt
-                    var request = new HttpRequestMessage(HttpMethod.Get, $"{ddEycApiUrl}/api/auth/validateSession");
-                    request.Headers.Add("Authorization", $"Bearer {token}");
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ClockSkew = TimeSpan.Zero
+                }, out var validatedToken);
 
-                    logger.LogDebug("Sending validation request to: {Url}", request.RequestUri);
-
-                    return await httpClient.SendAsync(request);
-                });
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    logger.LogWarning(
-                        "Token validation failed. Status code: {StatusCode}, Request path: {Path}",
-                        response.StatusCode,
-                        httpContext.Request.Path
-                    );
-                    context.Result = new UnauthorizedResult();
-                    return;
-                }
-
-                logger.LogInformation(
-                    "Token successfully validated for request path: {Path}",
-                    httpContext.Request.Path
-                );
+                await next();
             }
-            catch (Exception ex)
+            catch (SecurityTokenException)
             {
-                logger.LogError(
-                    ex,
-                    "Unrecoverable error during token validation. Request path: {Path}",
-                    httpContext.Request.Path
-                );
-                context.Result = new StatusCodeResult(StatusCodes.Status503ServiceUnavailable);
+                logger.LogWarning("Invalid token for request path: {Path}", httpContext.Request.Path);
+                context.Result = new UnauthorizedResult();
                 return;
             }
-
-            await next();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Authentication failed for request path: {Path}", httpContext.Request.Path);
+            context.Result = new UnauthorizedResult();
+            return;
         }
     }
-
 }

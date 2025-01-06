@@ -449,7 +449,6 @@ public class ChatService : IChatService
 
             if (!string.IsNullOrEmpty(args.Query))
                 queryParams.Add(new KeyValuePair<string, string>("Query", args.Query));
-
             if (!string.IsNullOrEmpty(args.EmploymentType))
                 queryParams.Add(new KeyValuePair<string, string>("EmploymentType", args.EmploymentType));
             if (!string.IsNullOrEmpty(args.DatePosted))
@@ -461,35 +460,56 @@ public class ChatService : IChatService
             queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
 
             var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/JobListing";
+            var httpContext = _httpContext.HttpContext;
+
+            if (httpContext == null)
+            {
+                _logger.LogError("HttpContext is null");
+                return JsonSerializer.Serialize(new { error = "Internal server error" });
+            }
 
             using var request = new HttpRequestMessage(HttpMethod.Get, QueryHelpers.AddQueryString(url, queryParams));
 
-            // Get the bearer token from the current HttpContext
-            var token = _httpContext.HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
-            if (string.IsNullOrEmpty(token))
+            // Handle authentication based on the presence of prefer-cookies
+            var isProd = httpContext.RequestServices.GetRequiredService<IHostEnvironment>().IsProduction();
+            var preferCookies = httpContext.Request.Cookies["prefer-cookies"] != null || isProd;
+
+            if (preferCookies)
             {
-                _logger.LogError("No authorization token found in request headers");
-                return JsonSerializer.Serialize(new { error = "Authorization required" });
+                var cookieToken = httpContext.Request.Cookies["DDEyC.Auth"];
+                if (string.IsNullOrEmpty(cookieToken))
+                {
+                    _logger.LogError("No authentication cookie found");
+                    return JsonSerializer.Serialize(new { error = "Authorization required" });
+                }
+
+                var cookieContainer = new System.Net.CookieContainer();
+                cookieContainer.Add(new Uri(_configuration["AppSettings:BackEndUrl"]),
+                    new System.Net.Cookie("DDEyC.Auth", cookieToken));
+
+                var handler = new HttpClientHandler
+                {
+                    CookieContainer = cookieContainer,
+                    UseCookies = true
+                };
+
+                using var client = new HttpClient(handler);
+                var response = await client.SendAsync(request);
+                return await HandleApiResponse(response);
             }
-
-            // Add the bearer token to the request
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var response = await _httpClient.SendAsync(request);
-
-            if (response.IsSuccessStatusCode)
-                return await response.Content.ReadAsStringAsync();
-
-            _logger.LogError("Failed to retrieve job listings. Status: {StatusCode}", response.StatusCode);
-            _logger.LogError("Request made to {Url}", url);
-
-            // Handle specific error cases
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            else
             {
-                return JsonSerializer.Serialize(new { error = "Unauthorized access to job listings" });
-            }
+                var token = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogError("No authorization token found in request headers");
+                    return JsonSerializer.Serialize(new { error = "Authorization required" });
+                }
 
-            return JsonSerializer.Serialize(new { error = "Failed to retrieve job listings" });
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var response = await _httpClient.SendAsync(request);
+                return await HandleApiResponse(response);
+            }
         }
         catch (Exception ex)
         {
@@ -497,6 +517,7 @@ public class ChatService : IChatService
             return JsonSerializer.Serialize(new { error = "Failed to process job listings request" });
         }
     }
+
     private async Task<string> HandleGetCourseRecommendationsAsync(string arguments)
     {
         var options = new JsonSerializerOptions
@@ -515,52 +536,90 @@ public class ChatService : IChatService
         try
         {
             var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/Courses/recommendations";
+            var httpContext = _httpContext.HttpContext;
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, url);
-
-            // Get the bearer token from the current HttpContext
-            var token = _httpContext.HttpContext?.Request.Headers.Authorization.FirstOrDefault()?.Replace("Bearer ", "");
-            if (string.IsNullOrEmpty(token))
+            if (httpContext == null)
             {
-                _logger.LogError("No authorization token found in request headers");
-                return JsonSerializer.Serialize(new { error = "Authorization required" });
+                _logger.LogError("HttpContext is null");
+                return JsonSerializer.Serialize(new { error = "Internal server error" });
             }
 
-            // Add the bearer token to the request
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            // Handle authentication based on the presence of prefer-cookies
+            var isProd = httpContext.RequestServices.GetRequiredService<IHostEnvironment>().IsProduction();
+            var preferCookies = httpContext.Request.Cookies["prefer-cookies"] != null || isProd;
 
-            // Add the content
             var content = new StringContent(
                 JsonSerializer.Serialize(args, options),
                 Encoding.UTF8,
                 MediaTypeNames.Application.Json);
-            request.Content = content;
 
-            var response = await _httpClient.SendAsync(request);
-
-            if (response.IsSuccessStatusCode)
-                return await response.Content.ReadAsStringAsync();
-
-            _logger.LogError("Failed to retrieve course recommendations. Status: {StatusCode}", response.StatusCode);
-            _logger.LogError("Request made to {Url}", url);
-
-            // Handle specific error cases
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            if (preferCookies)
             {
-                return JsonSerializer.Serialize(new { error = "Unauthorized access to course recommendations" });
+                var cookieToken = httpContext.Request.Cookies["DDEyC.Auth"];
+                if (string.IsNullOrEmpty(cookieToken))
+                {
+                    _logger.LogError("No authentication cookie found");
+                    return JsonSerializer.Serialize(new { error = "Authorization required" });
+                }
+
+                var cookieContainer = new System.Net.CookieContainer();
+                cookieContainer.Add(new Uri(_configuration["AppSettings:BackEndUrl"]),
+                    new System.Net.Cookie("DDEyC.Auth", cookieToken));
+
+                var handler = new HttpClientHandler
+                {
+                    CookieContainer = cookieContainer,
+                    UseCookies = true
+                };
+
+                using var client = new HttpClient(handler);
+                using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+                var response = await client.SendAsync(request);
+                return await HandleApiResponse(response);
             }
+            else
+            {
+                var token = httpContext.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogError("No authorization token found in request headers");
+                    return JsonSerializer.Serialize(new { error = "Authorization required" });
+                }
 
-            // Log the error response content for debugging
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogError("Error response content: {ErrorContent}", errorContent);
-
-            return JsonSerializer.Serialize(new { error = "Failed to retrieve course recommendations" });
+                using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var response = await _httpClient.SendAsync(request);
+                return await HandleApiResponse(response);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving course recommendations");
             return JsonSerializer.Serialize(new { error = "Failed to process course recommendations request" });
         }
+    }
+
+    private async Task<string> HandleApiResponse(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+            return await response.Content.ReadAsStringAsync();
+
+        _logger.LogError("API request failed with status: {StatusCode}", response.StatusCode);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            return JsonSerializer.Serialize(new { error = "Unauthorized access" });
+        }
+
+        var errorContent = await response.Content.ReadAsStringAsync();
+        _logger.LogError("Error response content: {ErrorContent}", errorContent);
+
+        return JsonSerializer.Serialize(new
+        {
+            error = "Request failed",
+            statusCode = (int)response.StatusCode,
+            message = errorContent
+        });
     }
     public async Task<List<MessageDto>> GetMessagesForThread(int userId, int threadId)
     {
