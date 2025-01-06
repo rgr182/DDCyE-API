@@ -1,4 +1,5 @@
 using System.Text;
+using DDEyC_API.Middlewares;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -72,11 +73,7 @@ public static class AuthenticationConfig
                     // Handle authentication challenges
                     if (context.AuthenticateFailure != null)
                     {
-                        // Log authentication failures if needed
-                        // var logger = context.HttpContext.RequestServices
-                        //     .GetService<ILogger<AuthenticationConfig>>();
-                        // logger?.LogWarning("Authentication challenge failed: {Error}",
-                        //     context.AuthenticateFailure.Message);
+                        // Log authentication failure if it becomes necessary
                     }
                     return Task.CompletedTask;
                 }
@@ -134,37 +131,4 @@ public static class AuthenticationConfig
     }
 }
 
-/// <summary>
-/// Middleware to handle Partitioned cookie attributes
-/// </summary>
-public class PartitionedCookieMiddleware : IMiddleware
-{
-    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
-    {
-        context.Response.OnStarting(() =>
-        {
-            var setCookieHeaders = context.Response.Headers["Set-Cookie"];
-            if (setCookieHeaders.Count > 0)
-            {
-                var newHeaders = new List<string>();
-                foreach (var header in setCookieHeaders)
-                {
-                    if (header.Contains("DDEyC.Auth") && !header.Contains("Partitioned"))
-                    {
-                        // Add Partitioned attribute to existing auth cookies
-                        newHeaders.Add($"{header}; Partitioned");
-                    }
-                    else
-                    {
-                        newHeaders.Add(header);
-                    }
-                }
-                context.Response.Headers["Set-Cookie"] = newHeaders.ToArray();
-            }
-            return Task.CompletedTask;
-        });
-
-        await next(context);
-    }
-}
 
