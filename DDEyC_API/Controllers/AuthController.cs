@@ -167,7 +167,6 @@ namespace DDEyC.Controllers
         /// <summary>
         /// Validates a session token.
         /// </summary>
-
         [HttpGet("validateSession")]
         [AllowAnonymous]
         public async Task<IActionResult> ValidateSession()
