@@ -59,22 +59,20 @@ namespace DDEyC.Controllers
 
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
-                    // Create JWT token
-                    var token = session.UserToken; // This is already a JWT from SaveSession
+                    var token = session.UserToken;
 
-                    // Configure cookie options
-                    var cookieOptions = new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = true,
-                        SameSite = SameSiteMode.None,
-                        Domain = _configuration["Authentication:CookieDomain"],
-                        Path = "/",
-                        Expires = session.ExpirationDate
-                    };
+                    // Build the complete cookie string with all attributes
+                    var cookieString = $"DDEyC.Auth={token}; " +
+                                     $"Domain={_configuration["Authentication:CookieDomain"]}; " +
+                                     "Path=/; " +
+                                     "Secure; " +
+                                     "HttpOnly; " +
+                                     "SameSite=None; " +
+                                     "Partitioned; " +
+                                     $"Expires={session.ExpirationDate.ToString("R")}";
 
-                    // Set JWT in cookie
-                    Response.Cookies.Append("DDEyC.Auth", token, cookieOptions);
+                    // Set a single Set-Cookie header with all attributes
+                    Response.Headers["Set-Cookie"] = cookieString;
 
                     return Ok(new
                     {
@@ -83,7 +81,6 @@ namespace DDEyC.Controllers
                     });
                 }
 
-                // Return full session info for JWT/bearer token auth
                 return Ok(session);
             }
             catch (Exception ex)
@@ -99,24 +96,22 @@ namespace DDEyC.Controllers
             {
                 var isProd = _hostEnvironment.IsProduction();
                 var token = string.Empty;
-                // Get JWT either from cookie or Authorization header
+
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
                     token = Request.Cookies["DDEyC.Auth"];
 
-                    // Clear the JWT cookie
-                    var cookieOptions = new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = true,
-                        SameSite = SameSiteMode.None,
-                        Domain = _configuration["Authentication:CookieDomain"],
-                        Path = "/",
-                        Expires = DateTime.UtcNow.AddDays(-1)
-                    };
+                    // Clear the cookie with all necessary attributes
+                    var cookieString = $"DDEyC.Auth=; " +
+                                     $"Domain={_configuration["Authentication:CookieDomain"]}; " +
+                                     "Path=/; " +
+                                     "Secure; " +
+                                     "HttpOnly; " +
+                                     "SameSite=None; " +
+                                     "Partitioned; " +
+                                     $"Expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
-                    Response.Cookies.Delete("DDEyC.Auth", cookieOptions);
-                    _logger.LogInformation("Cleared JWT cookie");
+                    Response.Headers["Set-Cookie"] = cookieString;
                 }
                 else
                 {
@@ -129,7 +124,6 @@ namespace DDEyC.Controllers
                     return BadRequest("No token provided");
                 }
 
-                // Invalidate the JWT token in the backend
                 var result = await _sessionService.EndSessionByToken(token);
                 if (!result)
                 {

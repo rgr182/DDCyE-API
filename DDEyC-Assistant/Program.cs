@@ -115,7 +115,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();                    
 app.UseCors("AllowSpecificOrigins"); 
-app.UseAuthentication();             
+app.UseAuthentication();
+app.UsePartitionedCookies();             
 app.UseAuthorization(); 
 
 app.MapControllers();
