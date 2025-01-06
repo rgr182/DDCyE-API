@@ -168,10 +168,3 @@ public class PartitionedCookieMiddleware : IMiddleware
     }
 }
 
-public static class PartitionedCookieExtensions
-{
-    public static IApplicationBuilder UsePartitionedCookies(this IApplicationBuilder app)
-    {
-        return app.UseMiddleware<PartitionedCookieMiddleware>();
-    }
-}
