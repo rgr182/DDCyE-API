@@ -5,6 +5,7 @@ using DDEyC_API.DataAccess.Models.DTOs;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DDEyC.Controllers
 {
@@ -222,8 +223,12 @@ namespace DDEyC.Controllers
                     AuthType = isProd || Request.Cookies["prefer-cookies"] != null ? "Cookie" : "Bearer"
                 });
             }
+            catch (SecurityTokenExpiredException){
+                return Unauthorized("Session has expired.");
+            }
             catch (Exception ex)
             {
+                
                 _logger.LogError(ex, "Error while validating session");
                 return StatusCode(500, "Internal server error");
             }

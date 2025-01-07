@@ -148,9 +148,7 @@ namespace DDEyC_API.Services.JSearch
                 var location = new[] { job.job_city, job.job_state, job.job_country }
                     .Where(x => !string.IsNullOrEmpty(x));
 
-                var jobIndustries = !string.IsNullOrEmpty(job.job_naics_name)
-                    ? new List<JobIndustry> { new() { JobIndustryList = new() { Industry = job.job_naics_name } } }
-                    : new List<JobIndustry>();
+       
 
                 var (academicLevels, minimumLevel) = _textAnalyzer.ExtractJobMetadata(
                     job.job_description,
@@ -167,17 +165,9 @@ namespace DDEyC_API.Services.JSearch
                     Location = string.Join(", ", location),
                     Country = job.job_country,
                     CompanyName = job.employer_name,
-                    CompanyUrl = job.employer_website,
                     Url = job.job_apply_link,
                     Created = DateTime.TryParse(job.job_posted_at_datetime_utc, out var created) ? created : DateTime.UtcNow,
-                    LastUpdated = DateTime.TryParse(job.job_posted_at_datetime_utc, out var updated) ? updated : DateTime.UtcNow,
-                    TimePosted = "N/A",
-                    Hash = job.job_id,
-                    ExternalUrl = job.job_google_link,
-                    Deleted = 0,
-                    ApplicationActive = 1,
                     Salary = ExtractSalary(job.job_highlights?.Benefits),
-                    RedirectedUrl = job.job_apply_link,
                     JobFunctions = job.job_highlights?.Responsibilities?.ToList() ?? new List<string>(),
                     AcademicLevels = academicLevels,
                     MinimumAcademicLevel = minimumLevel

@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
+using DDEyC_API.Models;
 using DDEyC_API.Models.DTOs;
 using DDEyC_Assistant.Exceptions;
 using DDEyC_Assistant.Models;
@@ -26,6 +27,7 @@ public class ChatService : IChatService
     private readonly int _maxRetries;
     private readonly TimeSpan _retryDelay;
     private readonly TimeSpan _runTimeout;
+    private readonly int _maxJobsLimit;
     private readonly IHttpContextAccessor _httpContext;
 
     public ChatService(
@@ -53,6 +55,7 @@ public class ChatService : IChatService
             configuration.GetValue("Chat:RetryDelaySeconds", 2));
         _runTimeout = TimeSpan.FromSeconds(
             configuration.GetValue("Chat:RunTimeoutSeconds", 30));
+        _maxJobsLimit = configuration.GetValue("Chat:MaxJobsLimit", 3);
     }
 
     public async Task<ChatStartResultDto> StartChatAsync(int userId)
@@ -457,7 +460,13 @@ public class ChatService : IChatService
                 queryParams.Add(new KeyValuePair<string, string>("Remote", args.Remote.Value.ToString()));
             if (args.Page > 0)
                 queryParams.Add(new KeyValuePair<string, string>("Page", args.Page.ToString()));
-            queryParams.Add(new KeyValuePair<string, string>("Limit", args.Limit.ToString()));
+
+            queryParams.Add(new KeyValuePair<string, string>("Limit", _maxJobsLimit.ToString()));
+
+            _logger.LogInformation(
+                "Requesting {Limit} job listings for query: {Query}",
+                _maxJobsLimit,
+                args.Query);
 
             var url = $"{_configuration["AppSettings:BackEndUrl"]}/api/JobListing";
             var httpContext = _httpContext.HttpContext;
@@ -468,12 +477,12 @@ public class ChatService : IChatService
                 return JsonSerializer.Serialize(new { error = "Internal server error" });
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, QueryHelpers.AddQueryString(url, queryParams));
-
-            // Handle authentication based on the presence of prefer-cookies
             var isProd = httpContext.RequestServices.GetRequiredService<IHostEnvironment>().IsProduction();
             var preferCookies = httpContext.Request.Cookies["prefer-cookies"] != null || isProd;
 
+            using var request = new HttpRequestMessage(HttpMethod.Get, QueryHelpers.AddQueryString(url, queryParams));
+
+            HttpResponseMessage response;
             if (preferCookies)
             {
                 var cookieToken = httpContext.Request.Cookies["DDEyC.Auth"];
@@ -494,8 +503,7 @@ public class ChatService : IChatService
                 };
 
                 using var client = new HttpClient(handler);
-                var response = await client.SendAsync(request);
-                return await HandleApiResponse(response);
+                response = await client.SendAsync(request);
             }
             else
             {
@@ -507,17 +515,37 @@ public class ChatService : IChatService
                 }
 
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                var response = await _httpClient.SendAsync(request);
+                response = await _httpClient.SendAsync(request);
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("API request failed with status: {StatusCode}", response.StatusCode);
                 return await HandleApiResponse(response);
             }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var jobListings = JsonSerializer.Deserialize<List<JobListing>>(content, options);
+
+            if (jobListings == null || !jobListings.Any())
+            {
+                _logger.LogInformation("No job listings found for query: {Query}", args.Query);
+                return JsonSerializer.Serialize(new { message = "No job listings found matching your criteria." });
+            }
+
+            _logger.LogInformation(
+                "Retrieved {Count} job listings for query: {Query}",
+                jobListings.Count,
+                args.Query);
+
+            return JsonSerializer.Serialize(jobListings, options);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving job listings");
+            _logger.LogError(ex, "Error retrieving job listings for query: {Query}", args.Query);
             return JsonSerializer.Serialize(new { error = "Failed to process job listings request" });
         }
     }
-
     private async Task<string> HandleGetCourseRecommendationsAsync(string arguments)
     {
         var options = new JsonSerializerOptions
