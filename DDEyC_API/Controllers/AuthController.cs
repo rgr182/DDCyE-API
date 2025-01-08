@@ -229,7 +229,6 @@ namespace DDEyC.Controllers
             }
             catch (Exception ex)
             {
-
                 _logger.LogError(ex, "Error while validating session");
                 return StatusCode(500, "Internal server error");
             }
