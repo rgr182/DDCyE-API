@@ -5,6 +5,7 @@ using DDEyC_API.DataAccess.Models.DTOs;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DDEyC.Controllers
 {
@@ -202,17 +203,17 @@ namespace DDEyC.Controllers
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
                     // Update the cookie with a fresh expiration time
-                    var cookieOptions = new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = true,
-                        SameSite = SameSiteMode.None,
-                        Domain = _configuration["Authentication:CookieDomain"],
-                        Path = "/",
-                        Expires = session.ExpirationDate
-                    };
+                    var cookieString = $"DDEyC.Auth={token}; " +
+                     $"Domain={_configuration["Authentication:CookieDomain"]}; " +
+                     "Path=/; " +
+                     "Secure; " +
+                     "HttpOnly; " +
+                     "SameSite=None; " +
+                     "Partitioned; " +
+                     $"Expires={session.ExpirationDate.ToString("R")}";
 
-                    Response.Cookies.Append("DDEyC.Auth", token, cookieOptions);
+                    // Set a single Set-Cookie header with all attributes
+                    Response.Headers["Set-Cookie"] = cookieString;
                 }
 
                 return Ok(new
@@ -221,6 +222,10 @@ namespace DDEyC.Controllers
                     Message = $"Token expires in {remainingMinutes} minute(s).",
                     AuthType = isProd || Request.Cookies["prefer-cookies"] != null ? "Cookie" : "Bearer"
                 });
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                return Unauthorized("Session has expired.");
             }
             catch (Exception ex)
             {
