@@ -3,6 +3,7 @@ using DDEyC_API.Middlewares;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
 
 namespace DDEyC_API.Shared.Configuration;
@@ -11,10 +12,10 @@ public static class AuthenticationConfig
 {
     public static void ConfigureAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var key = Encoding.ASCII.GetBytes(configuration.GetValue<string>("Jwt:Key") ?? 
+        var key = Encoding.ASCII.GetBytes(configuration.GetValue<string>("Jwt:Key") ??
             throw new ArgumentException("JWT key must be configured in Jwt:Key"));
-            
-        var cookieDomain = configuration["Authentication:CookieDomain"] ?? 
+
+        var cookieDomain = configuration["Authentication:CookieDomain"] ??
             throw new ArgumentException("Cookie domain must be configured in Authentication:CookieDomain");
 
         // Configure JWT Authentication
@@ -116,6 +117,10 @@ public static class AuthenticationConfig
             });
         });
 
+        if (services.All(d => d.ServiceType != typeof(IDistributedCache)))
+        {
+            services.AddDistributedMemoryCache();
+        }
         // Configure session for additional state management if needed
         services.AddSession(options =>
         {

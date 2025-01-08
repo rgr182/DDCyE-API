@@ -203,17 +203,17 @@ namespace DDEyC.Controllers
                 if (isProd || Request.Cookies["prefer-cookies"] != null)
                 {
                     // Update the cookie with a fresh expiration time
-                    var cookieOptions = new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = true,
-                        SameSite = SameSiteMode.None,
-                        Domain = _configuration["Authentication:CookieDomain"],
-                        Path = "/",
-                        Expires = session.ExpirationDate
-                    };
+                    var cookieString = $"DDEyC.Auth={token}; " +
+                     $"Domain={_configuration["Authentication:CookieDomain"]}; " +
+                     "Path=/; " +
+                     "Secure; " +
+                     "HttpOnly; " +
+                     "SameSite=None; " +
+                     "Partitioned; " +
+                     $"Expires={session.ExpirationDate.ToString("R")}";
 
-                    Response.Cookies.Append("DDEyC.Auth", token, cookieOptions);
+                    // Set a single Set-Cookie header with all attributes
+                    Response.Headers["Set-Cookie"] = cookieString;
                 }
 
                 return Ok(new
@@ -223,12 +223,13 @@ namespace DDEyC.Controllers
                     AuthType = isProd || Request.Cookies["prefer-cookies"] != null ? "Cookie" : "Bearer"
                 });
             }
-            catch (SecurityTokenExpiredException){
+            catch (SecurityTokenExpiredException)
+            {
                 return Unauthorized("Session has expired.");
             }
             catch (Exception ex)
             {
-                
+
                 _logger.LogError(ex, "Error while validating session");
                 return StatusCode(500, "Internal server error");
             }
