@@ -527,7 +527,7 @@ public class ChatService : IChatService
             var content = await response.Content.ReadAsStringAsync();
             var jobListings = JsonSerializer.Deserialize<List<JobListing>>(content, options);
 
-            if (jobListings == null || jobListings.Count>0)
+            if (jobListings == null || !(jobListings.Count>0))
             {
                 _logger.LogInformation("No job listings found for query: {Query}", args.Query);
                 return JsonSerializer.Serialize(new { message = "No job listings found matching your criteria." });
