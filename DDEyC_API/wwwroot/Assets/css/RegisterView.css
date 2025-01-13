@@ -1,0 +1,222 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+body {
+    font-family: 'Montserrat', sans-serif;
+}
+
+.container-form {
+    padding: 40px 30px 0 0;
+}
+@media(max-width: 990px){
+    .container-form {
+        padding: 40px 0 0 0;
+    }
+}
+
+.register-form {
+    display:flex;
+    flex-direction: column;
+    background-color: #F7F7F7;
+    border-radius: 5px;
+    width:50%;
+    padding: 30px;
+    border: 3px solid #006DE3;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+@media(max-width: 990px){
+    .register-form{
+        width: 95%;
+    }
+}
+
+.register-marckbot {
+    height: auto;
+    width: 90%;
+}
+@media(max-width: 990px){
+    .register-marckbot {
+        margin-top: 20px;
+    }
+}
+
+.font-monserrat {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 18px;
+
+}
+.password-text {
+    font-size: 12px;
+}
+#input-name, #input-lastname {
+    border-color: #CCCCCC;
+    border-width: 1px;
+    border-style: solid;
+}
+.main-title {
+    background-color: #007bff;
+    height: 115px;
+}
+
+.main-title h1 {
+    font-size: 36px;
+}
+.label-titel {
+    font-size: 23px;
+    font-weight: 600;
+    color: #007bff;
+}
+
+.user-info {
+    width: 45%;
+    min-height: 50px;
+}
+
+.dialog {
+    width: 100%;
+    min-height: 50px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #CCCCCC;
+    border-radius: 1px;
+}
+
+.birthday-button {
+    width: 100%;
+    border: 1px solid gray;
+}
+
+.birthday-button:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+#options-day,
+#options-month,
+#options-year {
+    max-height: 170px;
+    overflow-y: auto;
+}
+
+.gender {
+    width: 100%;
+    min-height: 50px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    border: 1px solid gray;
+    border-radius: 3px;
+}
+
+.gender:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.gender:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+}
+
+.gender.selected {
+    font-weight: bold;
+    border: 2px solid #007bff;
+}
+
+.register-button,
+.back-button {
+    width: 45%;
+    min-width: 100px;
+    min-height: 50px;
+}
+
+.register-button:active,
+.back-button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+}
+
+.logo {
+    width: 50%;
+}
+
+/* Responsive styles */
+@media (width <= 600px) {
+    .main-title {
+        height: 80px;
+    }
+
+    .main-title h1 {
+        font-size: 30px;
+        margin: 0;
+    }
+
+    .main-title p {
+        margin: 0;
+    }
+
+    .user-info {
+        width: 45%;
+        min-height: 40px;
+    }
+
+    .dialog {
+        min-height: 40px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+    }
+
+    .advice-text {
+        font-size: 12px;
+        margin: 0;
+    }
+
+    .gender {
+        margin: 0;
+    }
+
+    .logo {
+        margin: 20px 0 0;
+        width: 75%;
+    }
+}
+
+/* Custom dropdown styling */
+.dropdown-menu {
+    width: 100%;
+}
+
+.dropdown-item {
+    cursor: pointer;
+    padding: 8px 12px;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Error and success message styling */
+.error-message,
+#message-error,
+#message-success {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+}
+
+.error-message {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+#message-success {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+/* Form field styling */
+input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}

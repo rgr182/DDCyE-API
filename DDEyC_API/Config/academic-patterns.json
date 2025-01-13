@@ -1,0 +1,60 @@
+{
+  "patterns": [
+    {
+      "level": "Educación básica",
+      "patterns": [
+        "\\bprimaria\\b",
+        "\\belementary(?:\\s+school)?\\b",
+        "\\bsecundaria\\b",
+        "\\bmiddle\\s+school\\b",
+        "\\beducaci[oóÓ]n\\s+b[aáÁ]sica\\b"
+      ]
+    },
+    {
+      "level": "Educación media-superior",
+      "patterns": [
+        "\\bpreparatoria\\b",
+        "\\bprepa\\b",
+        "\\bbachillerato\\b",
+        "\\beducaci[oóÓ]n\\s+media\\s*(?:[-\\s]\\s*superior)?\\b",
+        "\\bhigh\\s+school(?:\\s+diploma)?\\b",
+        "\\btechnical(?:\\s+degree|\\s+diploma)\\b",
+        "\\bt[eéÉ]cnico\\s+(?:superior|medio|en)\\b",
+        "\\btechnical\\s+school\\b",
+        "\\bassociate['\u2018\u2019]?s?\\s+degree\\b"
+      ]
+    },
+    {
+      "level": "Educación superior",
+      "patterns": [
+        "\\b(?:licenciatura|licenciado)\\b",
+        "\\bingenie(?:r[iíÍ]a|ro)\\b",
+        "\\bing\\.\\s+en\\b",
+        "\\bbachelor['\u2018\u2019]?s?(?:\\s+degree)?\\b",
+        "\\bb\\.?\\s*s\\.?(?:\\s+in)?\\b",
+        "\\bb\\.?\\s*a\\.?\\b",
+        "\\bcollege\\s+degree\\b",
+        "\\buniversity\\s+degree\\b",
+        "\\beducaci[oóÓ]n\\s+superior\\b",
+        "\\bt[iíÍ]tulo\\s+(?:universitario|profesional)\\b",
+        "\\bgrado\\s+(?:universitario|profesional)\\b",
+        "\\bprofesional\\s+titulado\\b",
+        "\\bcarrera\\s+(?:universitaria|profesional)\\b",
+        "\\bgraduado\\s+(?:universitario|de)\\b"
+      ]
+    }, 
+    {
+      "level": "Postgrado",
+      "patterns": [
+        "\\b(?:doctorado|doctoral)\\b",
+        "\\bph\\.?\\s*d\\b",
+        "\\bmaest?r[iíÍ]a\\b",
+        "\\bmaster['\u2018\u2019]?s?\\s+degree\\b",
+        "\\bm\\.?\\s*b\\.?\\s*a\\.?\\b",
+        "\\bpost\\s*grado\\b",
+        "\\bpos\\s*grado\\b",
+        "\\bgraduate\\s+degree\\b"
+      ]
+    }
+  ]
+}

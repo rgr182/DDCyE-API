@@ -1,0 +1,37 @@
+﻿@inject IConfiguration Configuration
+
+@{
+    ViewData["Title"] = "HeaderPartial";
+    var logo1Url = Configuration["LogoUrls:Logo1"];
+    var logo2Url = Configuration["LogoUrls:Logo2"];
+    var logo3Url = Configuration["LogoUrls:Logo3"];
+}
+
+<div class="header-container">
+    <!-- Container for the logos -->
+    <div class="logos-container row">
+        <!-- Logo 1 (left) -->
+        <div class="col-4 d-flex justify-content-start align-items-start">
+            <a class="w-100 d-flex justify-content-start align-items-start" href="@logo1Url" target="_blank">
+                <img src="~/Assets/images/LOGOTIPO GOB MPAL.png" alt="Logo 1" class="logo img-fluid">
+            </a>
+        </div>
+        <!-- Logo 2 (center) -->
+        <div class="col-4 d-flex justify-content-center align-items-center">
+            <a class="w-100 d-flex justify-content-center align-items-center" href="@logo2Url" target="_blank">
+                <img src="~/Assets/images/logo-idea-azul.webp" alt="Logo 2" class="logo img-fluid">
+            </a>
+        </div>
+        <!-- Logo 3 (right) -->
+        <div class="col-4 d-flex justify-content-end align-items-end">
+            <a class="w-100 d-flex justify-content-end align-items-end" href="@logo3Url" target="_blank">
+                <img src="~/Assets/images/logo-capital.webp" alt="Logo 3" class="logo img-fluid">
+            </a>
+        </div>
+    </div>
+
+    <!-- Color strip below the logos -->
+    <div class="color-strip"></div>
+</div>
+
+<link rel="stylesheet" href="~/Assets/css/headerStyles.css">

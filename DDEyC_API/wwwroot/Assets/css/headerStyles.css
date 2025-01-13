@@ -1,0 +1,35 @@
+﻿.header-container {
+    width: 100%;
+    margin: 0 auto;
+    padding-top: 20px;
+}
+
+.logos-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding-bottom: 10px; /* Space between the logos and the color strip */
+}
+
+.logo {
+    max-height: 180px;
+}
+
+.color-strip {
+    height: 10px;
+    background-image: linear-gradient(to right, red, orange, yellow, green, cyan, purple, violet);
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .logos-container {
+        text-align: center;
+    }
+
+    .logo {
+        margin-bottom: 10px;
+    }
+
+    .col-4 {
+        justify-content: center !important; /* Center the logos on small screens */
+    }
+}

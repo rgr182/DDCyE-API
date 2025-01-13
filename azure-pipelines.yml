@@ -1,0 +1,72 @@
+pool:
+  name: 'Self-Hosted Pool'  # Name of the pool for the self-hosted agent
+
+steps:
+# Install .NET Core SDK
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '8.x'
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+# Restore dependencies for the DDEyC_API project only
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'
+
+# Build the DDEyC_API project only
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'
+    arguments: '--configuration Release'
+
+# Publish the DDEyC_API project to a temporary directory for deployment
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    projects: '$(Build.SourcesDirectory)/DDEyC_API/DDEyC_API.csproj'
+    publishWebProjects: true
+    arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
+    zipAfterPublish: true
+
+# Use PowerShell to copy files to the remote Windows server
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      $SourceFolder = "$(Build.ArtifactStagingDirectory)"
+      $TargetFolder = "C:\inetpub\WebAPI"
+      
+      # Credenciales hardcodeadas
+      $Username = "Administrator"
+      $Password = "ch4ng3andcod3bruh" | ConvertTo-SecureString -AsPlainText -Force
+      $Credential = New-Object System.Management.Automation.PSCredential ($Username, $Password)
+      
+      # Copiar archivos al servidor remoto
+      Invoke-Command -ComputerName "158.222.102.253" -Credential $Credential -ScriptBlock {
+          param ($SourceFolder, $TargetFolder)
+
+          # Verificar si el directorio de destino existe, si no, crearlo
+          if (-Not (Test-Path -Path $TargetFolder)) {
+              New-Item -ItemType Directory -Path $TargetFolder
+          }
+
+          # Copiar los archivos desde el directorio de origen al destino
+          Copy-Item -Path "$SourceFolder\*" -Destination $TargetFolder -Recurse -Force
+      } -ArgumentList $SourceFolder, $TargetFolder
+
+# Execute a PowerShell command to restart IIS on the remote Windows server
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      $Username = "Administrator"
+      $Password = "ch4ng3andcod3bruh" | ConvertTo-SecureString -AsPlainText -Force
+      $Credential = New-Object System.Management.Automation.PSCredential ($Username, $Password)
+
+      # Reiniciar IIS en el servidor remoto
+      Invoke-Command -ComputerName "158.222.102.253" -Credential $Credential -ScriptBlock {
+          iisreset
+      }
